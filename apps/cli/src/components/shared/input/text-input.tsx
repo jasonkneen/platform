@@ -83,7 +83,7 @@ export function TextInput({
         <Box justifyContent="flex-end">
           <Text color={!userMessageLimit.isUserLimitReached ? 'gray' : 'red'}>
             {userMessageLimit.remainingMessages} /{' '}
-            {userMessageLimit.dailyMessageLimit} messages remaining
+            {userMessageLimit.dailyMessageLimit} messages remaining today
           </Text>
         </Box>
       )}
