@@ -1,6 +1,6 @@
 import type { AgentSseEvent, TraceId } from '@appdotbuild/core';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { type SendMessageParams, sendMessage } from '../api/application.js';
 import { applicationQueryKeys } from './use-application.js';
 import { queryKeys } from './use-build-app.js';
@@ -44,16 +44,21 @@ export const useSendMessage = () => {
     traceId: string;
   } | null>(null);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const result = useMutation({
     mutationFn: async ({
       message,
       applicationId: passedAppId,
       traceId: passedTraceId,
     }: SendMessageParams) => {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
       return sendMessage({
         message,
         applicationId: passedAppId || metadata?.applicationId,
         traceId: passedTraceId || metadata?.traceId,
+        signal: controller.signal,
         onMessage: (newEvent) => {
           if (!newEvent.traceId) {
             throw new Error('Trace ID not found');
@@ -111,8 +116,15 @@ export const useSendMessage = () => {
     },
   });
 
+  const abortSignal = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
+
   // we need this to keep the previous application id
-  return { ...result, data: metadata };
+  return { ...result, data: metadata, abortSignal };
 };
 
 function extractApplicationId(traceId: TraceId) {
