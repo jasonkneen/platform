@@ -21,6 +21,7 @@ import {
   userCommitChangesEndpoint,
 } from './github';
 import { logger } from './logger';
+import { getKoyebDeploymentEndpoint } from './deploy';
 
 config({ path: '.env' });
 validateEnv();
@@ -71,6 +72,7 @@ app.post(
   postMessage,
 );
 app.get('/message-limit', authHandler, getUserMessageLimit);
+app.get('/deployment-status/:id', authHandler, getKoyebDeploymentEndpoint);
 
 app.post('/analytics/event', authHandler, sendAnalyticsEvent);
 
