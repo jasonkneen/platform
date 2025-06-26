@@ -292,6 +292,7 @@ export async function postMessage(
             session,
             'Previous request not found',
             abortController,
+            traceId as TraceId,
           );
           return;
         }
@@ -360,6 +361,7 @@ export async function postMessage(
               session,
               'There was an error cloning your repository, try again with a different prompt.',
               abortController,
+              traceId as TraceId,
             );
             return reply.status(500);
           })
@@ -479,6 +481,7 @@ export async function postMessage(
                 session,
                 'There was an error validating the message schema, try again with a different prompt.',
                 abortController,
+                traceId as TraceId,
               );
               return;
             }
@@ -547,6 +550,7 @@ export async function postMessage(
                 session,
                 'There was an error generating your application diff, try again with a different prompt.',
                 abortController,
+                traceId as TraceId,
               );
               return;
             }
@@ -768,19 +772,6 @@ export async function postMessage(
           },
           'error',
         );
-        streamLog(
-          {
-            message: `[appId: ${applicationId}] Error details - type: ${
-              err.type
-            }, origin: ${JSON.stringify(
-              err.origin,
-            )}, origin keys: ${Object.keys(err.origin || {})}`,
-            applicationId,
-            traceId,
-            userId,
-          },
-          'error',
-        );
 
         const errorMessage =
           err.origin?.message ||
@@ -794,6 +785,7 @@ export async function postMessage(
             session,
             `There was an error with the stream: ${errorMessage}`,
             abortController,
+            traceId as TraceId,
           );
         } else {
           app.log.error(
@@ -1251,8 +1243,9 @@ function terminateStreamWithError(
   session: Session,
   error: string,
   abortController: AbortController,
+  traceId: TraceId,
 ) {
-  session.push(new StreamingError(error), 'error');
+  session.push(new StreamingError(error, traceId), 'error');
   abortController.abort();
   session.removeAllListeners();
 }
