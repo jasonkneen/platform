@@ -28,7 +28,7 @@ const getPhaseTitle = (
       }
       return 'Platform message';
     case MessageKind.RUNTIME_ERROR:
-      return 'There was an error generating your application';
+      return 'Unexpected error';
     case MessageKind.REFINEMENT_REQUEST:
       return 'Expecting user input';
     case MessageKind.USER_MESSAGE:

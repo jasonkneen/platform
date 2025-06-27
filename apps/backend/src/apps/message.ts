@@ -671,38 +671,72 @@ export async function postMessage(
                 applicationId!,
               );
 
-              const { appURL, deploymentId } = await writeMemfsToTempDir(
+              const deployResult = await writeMemfsToTempDir(
                 memfsVolume,
                 virtualDir,
-              ).then((tempDirPath) =>
-                deployApp({
-                  appId: applicationId!,
-                  appDirectory: tempDirPath,
-                }),
-              );
+              )
+                .then((tempDirPath) =>
+                  deployApp({
+                    appId: applicationId!,
+                    appDirectory: tempDirPath,
+                  }),
+                )
+                .catch(async (error) => {
+                  streamLog(
+                    {
+                      message: `[appId: ${applicationId}] Error deploying app: ${error}`,
+                      applicationId,
+                      traceId,
+                      userId,
+                      error:
+                        error instanceof Error ? error.message : String(error),
+                    },
+                    'error',
+                  );
+                  pushAndSaveStreamingErrorMessage(
+                    session,
+                    applicationId!,
+                    new StreamingError(
+                      `There was an error deploying your application, check the code in the Github repository.`,
+                      traceId!,
+                    ),
+                  );
+                });
 
               SentryMetrics.trackDeploymentEnd(deployStartTime, 'complete');
 
-              await addAppURL({
-                repo: appName as string,
-                owner: githubUsername,
-                appURL: appURL,
-                githubAccessToken,
-              });
-
-              await pushAndSavePlatformMessage(
-                session,
-                applicationId,
-                new PlatformMessage(
-                  AgentStatus.IDLE,
-                  traceId!,
-                  `Your application is being deployed to ${appURL}`,
+              if (deployResult) {
+                streamLog(
                   {
-                    type: PlatformMessageType.DEPLOYMENT_IN_PROGRESS,
-                    deploymentId,
+                    message: `[appId: ${applicationId}] adding app URL to github, appURL: ${deployResult.appURL}`,
+                    applicationId,
+                    traceId,
+                    userId,
                   },
-                ),
-              );
+                  'info',
+                );
+
+                await addAppURL({
+                  repo: appName as string,
+                  owner: githubUsername,
+                  appURL: deployResult.appURL,
+                  githubAccessToken,
+                });
+
+                await pushAndSavePlatformMessage(
+                  session,
+                  applicationId,
+                  new PlatformMessage(
+                    AgentStatus.IDLE,
+                    traceId!,
+                    `Your application is being deployed to ${deployResult.appURL}`,
+                    {
+                      type: PlatformMessageType.DEPLOYMENT_IN_PROGRESS,
+                      deploymentId: deployResult.deploymentId,
+                    },
+                  ),
+                );
+              }
             }
 
             const canBreakStream =
@@ -1219,6 +1253,22 @@ async function pushAndSavePlatformMessage(
     'assistant',
     MessageKind.PLATFORM_MESSAGE,
     message.metadata,
+  );
+}
+
+async function pushAndSaveStreamingErrorMessage(
+  session: Session,
+  applicationId: string,
+  message: StreamingError,
+) {
+  session.push(message);
+
+  const messageContent = message.message.messages[0]?.content || '';
+  await saveMessageToDB(
+    applicationId,
+    messageContent,
+    'assistant',
+    MessageKind.RUNTIME_ERROR,
   );
 }
 
