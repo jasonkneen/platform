@@ -41,8 +41,6 @@ export const apps = pgTable(
     neonProjectId: text(),
     appName: text(),
     appUrl: text(),
-    databricksApiKey: text(),
-    databricksHost: text(),
   },
   (table) => [index('idx_apps_ownerid_id').on(table.ownerId, table.id)],
 );

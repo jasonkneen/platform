@@ -58,7 +58,6 @@ type Body = {
   settings: Record<string, any>;
   agentState?: any;
   allFiles?: FileData[];
-  templateId?: 'trpc_agent' | 'nicegui_agent';
 };
 
 type RequestBody = {
@@ -68,8 +67,6 @@ type RequestBody = {
   settings?: Record<string, any>;
   applicationId?: string;
   traceId?: TraceId;
-  databricksApiKey?: string;
-  databricksHost?: string;
 };
 
 type StructuredLog = {
@@ -212,8 +209,6 @@ export async function postMessage(
         },
       ],
       settings: requestBody.settings || {},
-      // for now we only support python apps for databricks apps
-      templateId: requestBody.databricksHost ? 'nicegui_agent' : 'trpc_agent',
     };
 
     let appName: string | null = null;
@@ -692,7 +687,6 @@ export async function postMessage(
                   deployApp({
                     appId: applicationId!,
                     appDirectory: tempDirPath,
-                    databricksMode: Boolean(requestBody.databricksHost),
                   }),
                 )
                 .catch(async (error) => {
@@ -745,9 +739,6 @@ export async function postMessage(
                     {
                       type: PlatformMessageType.DEPLOYMENT_IN_PROGRESS,
                       deploymentId: deployResult.deploymentId,
-                      deploymentType: requestBody.databricksHost
-                        ? 'databricks'
-                        : 'koyeb',
                     },
                   ),
                 );
@@ -994,8 +985,6 @@ async function appCreation({
     repositoryUrl,
     appName: newAppName,
     githubUsername: githubEntity.githubUsername,
-    databricksApiKey: requestBody.databricksApiKey,
-    databricksHost: requestBody.databricksHost,
   });
   streamLog(
     {

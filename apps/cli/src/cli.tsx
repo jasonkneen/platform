@@ -7,7 +7,6 @@ import {
   useEnvironmentStore,
 } from './store/environment-store.js';
 import { useAnalyticsStore } from './store/analytics-store.js';
-import { useFlagsStore } from './store/flags-store.js';
 
 // in the CLI, node_env is only production or development
 const defaultEnv = process.env.NODE_ENV ?? 'development';
@@ -19,12 +18,10 @@ const cli = meow(
 
 	Options
 	  --env, -e Agent and platform environment (staging|production) (optional) [default: ${defaultEnv}]
-	  --databricks Enable Databricks app creation mode
 
 	Examples
 	  $ npx @app.build/cli
 	  $ npx @app.build/cli --agent-env staging
-	  $ npx @app.build/cli --databricks
 `,
   {
     importMeta: import.meta,
@@ -40,11 +37,6 @@ const cli = meow(
         default: true,
         description: 'Manage analytics. Example: --analytics false',
       },
-      databricks: {
-        type: 'boolean',
-        default: false,
-        description: 'Enable Databricks app creation mode',
-      },
     },
   },
 );
@@ -57,8 +49,5 @@ useEnvironmentStore.getState().setEnvironment(cli.flags.env as Environment);
 
 // Set analytics preference
 useAnalyticsStore.getState().setAnalyticsEnabled(cli.flags.analytics);
-
-// set databricks mode
-useFlagsStore.getState().setDatabricksMode(cli.flags.databricks);
 
 render(<App />);
