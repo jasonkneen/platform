@@ -1,8 +1,13 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { AgentSseEventMessage, Optional } from '@appdotbuild/core';
+import type {
+  AgentSseEventMessage,
+  Optional,
+  PromptKindType,
+} from '@appdotbuild/core';
 import {
+  PromptKind,
   type AgentSseEvent,
   AgentStatus,
   agentSseEventSchema,
@@ -77,6 +82,14 @@ type StructuredLog = {
   applicationId?: string;
   traceId?: string;
   [key: string]: any;
+};
+
+type DBMessage = {
+  appId: string;
+  message: string;
+  role: PromptKindType;
+  messageKind: MessageKind;
+  metadata?: any;
 };
 
 export type StreamLogFunction = (
@@ -207,7 +220,7 @@ export async function postMessage(
       applicationId,
       allMessages: [
         {
-          role: 'user',
+          role: PromptKind.USER,
           content: requestBody.message,
         },
       ],
@@ -275,7 +288,7 @@ export async function postMessage(
           allMessages: [
             ...messagesFromHistory,
             {
-              role: 'user' as const,
+              role: PromptKind.USER,
               content: requestBody.message,
             },
           ],
@@ -339,12 +352,12 @@ export async function postMessage(
 
     // Save user message to database immediately for permanent apps
     if (isPermanentApp) {
-      await saveMessageToDB(
-        applicationId,
-        requestBody.message,
-        'user',
-        MessageKind.USER_MESSAGE,
-      );
+      await saveMessageToDB({
+        appId: applicationId,
+        message: requestBody.message,
+        role: PromptKind.USER,
+        messageKind: MessageKind.USER_MESSAGE,
+      });
     }
 
     const tempDirPath = path.join(
@@ -1006,6 +1019,22 @@ async function appCreation({
     'info',
   );
 
+  const inMemoryMessages =
+    conversationManager.getConversationHistory(applicationId);
+
+  await saveMessageToDB(
+    inMemoryMessages.map((message) => ({
+      appId: applicationId,
+      message: message.content,
+      role: message.role,
+      messageKind:
+        message.kind ||
+        (message.role === PromptKind.USER
+          ? MessageKind.USER_MESSAGE
+          : MessageKind.STAGE_RESULT),
+    })),
+  );
+
   await pushAndSavePlatformMessage(
     session,
     applicationId,
@@ -1136,7 +1165,7 @@ function getExistingConversationBody({
     allMessages: [
       ...messages,
       {
-        role: 'user' as const,
+        role: PromptKind.USER,
         content: userMessage,
       },
     ],
@@ -1199,44 +1228,46 @@ async function getMessagesFromDB(
       return prompt.messageKind !== MessageKind.PLATFORM_MESSAGE;
     })
     .map((prompt) => {
-      if (prompt.kind === 'user') {
+      if (prompt.kind === PromptKind.USER) {
         return {
-          role: 'user' as const,
+          role: PromptKind.USER,
           content: prompt.prompt,
+          kind: MessageKind.USER_MESSAGE,
         };
       }
       return {
-        role: 'assistant' as const,
+        role: PromptKind.ASSISTANT,
         content: prompt.prompt,
-        kind: prompt.messageKind || MessageKind.STAGE_RESULT,
+        kind: (prompt.messageKind || MessageKind.STAGE_RESULT) as MessageKind,
         metadata: prompt.metadata,
       };
     });
 }
 
+async function saveMessageToDB(message: DBMessage[]): Promise<void>;
+async function saveMessageToDB(message: DBMessage): Promise<void>;
 async function saveMessageToDB(
-  appId: string,
-  message: string,
-  role: 'user' | 'assistant',
-  messageKind: MessageKind,
-  metadata?: any,
-) {
+  message: DBMessage | DBMessage[],
+): Promise<void> {
+  const messageArray = Array.isArray(message) ? message : [message];
+  const values = messageArray.map((message) => ({
+    id: uuidv4(),
+    prompt: message.message,
+    appId: message.appId,
+    kind: message.role,
+    messageKind: message.messageKind,
+    metadata: message.metadata,
+  }));
+
   try {
-    await db.insert(appPrompts).values({
-      id: uuidv4(),
-      prompt: message,
-      appId: appId,
-      kind: role,
-      messageKind: messageKind,
-      metadata,
-    });
+    await db.insert(appPrompts).values(values);
   } catch (error) {
     app.log.error({
       message: 'Error saving message to DB',
       error: error instanceof Error ? error.message : String(error),
-      appId,
-      role,
-      messageKind,
+      appId: messageArray[0]?.appId,
+      role: messageArray[0]?.role,
+      messageKind: messageArray[0]?.messageKind,
     });
     throw error;
   }
@@ -1255,13 +1286,13 @@ async function pushAndSavePlatformMessage(
   session.push(message);
 
   const messageContent = message.message.messages[0]?.content || '';
-  await saveMessageToDB(
-    applicationId,
-    messageContent,
-    'assistant',
-    MessageKind.PLATFORM_MESSAGE,
-    message.metadata,
-  );
+  await saveMessageToDB({
+    appId: applicationId,
+    message: messageContent,
+    role: PromptKind.ASSISTANT,
+    messageKind: MessageKind.PLATFORM_MESSAGE,
+    metadata: message.metadata,
+  });
 }
 
 async function pushAndSaveStreamingErrorMessage(
@@ -1272,29 +1303,28 @@ async function pushAndSaveStreamingErrorMessage(
   session.push(message);
 
   const messageContent = message.message.messages[0]?.content || '';
-  await saveMessageToDB(
-    applicationId,
-    messageContent,
-    'assistant',
-    MessageKind.RUNTIME_ERROR,
-  );
+
+  await saveMessageToDB({
+    appId: applicationId,
+    message: messageContent,
+    role: PromptKind.ASSISTANT,
+    messageKind: MessageKind.RUNTIME_ERROR,
+  });
 }
 
 async function saveAgentMessages(
   applicationId: string,
   agentEvent: AgentSseEvent,
 ) {
-  // save each message from the agent event
-  for (const message of agentEvent.message.messages) {
-    const messageKind = agentEvent.message.kind;
+  const preparedMessages = agentEvent.message.messages.map((message) => ({
+    appId: applicationId,
+    message: message.content,
+    role: message.role,
+    messageKind: agentEvent.message.kind,
+  }));
 
-    await saveMessageToDB(
-      applicationId,
-      message.content,
-      message.role,
-      messageKind,
-    );
-  }
+  // save each message from the agent event
+  await saveMessageToDB(preparedMessages);
 }
 
 function terminateStreamWithError(
