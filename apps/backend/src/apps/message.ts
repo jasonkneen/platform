@@ -18,6 +18,7 @@ import {
   PromptKind,
   StreamingError,
   type TraceId,
+  DeployStatus,
 } from '@appdotbuild/core';
 import { nodeEventSource } from '@llm-eaf/node-event-source';
 import { createSession, type Session } from 'better-sse';
@@ -268,6 +269,10 @@ export async function postMessage(
           'info',
         );
         appName = application[0]!.appName;
+
+        if (application[0]!.repositoryUrl) {
+          githubEntity.repositoryUrl = application[0]!.repositoryUrl;
+        }
 
         const messagesFromHistory = await getMessagesFromHistory(
           applicationId,
@@ -760,6 +765,9 @@ export async function postMessage(
                     {
                       type: PlatformMessageType.DEPLOYMENT_IN_PROGRESS,
                       deploymentId: deployResult.deploymentId,
+                      deploymentUrl: deployResult.appURL,
+                      deployStatus: DeployStatus.DEPLOYING,
+                      githubUrl: githubEntity.repositoryUrl,
                       deploymentType: requestBody.databricksHost
                         ? 'databricks'
                         : 'koyeb',
@@ -1004,6 +1012,8 @@ async function appCreation({
     throw new Error('Repository URL not found');
   }
 
+  githubEntity.repositoryUrl = repositoryUrl;
+
   await db.insert(apps).values({
     id: applicationId,
     name: appName,
@@ -1017,6 +1027,7 @@ async function appCreation({
     databricksApiKey: requestBody.databricksApiKey,
     databricksHost: requestBody.databricksHost,
   });
+
   streamLog(
     {
       message: 'App created',
@@ -1049,7 +1060,7 @@ async function appCreation({
       AgentStatus.IDLE,
       traceId as TraceId,
       `Your application has been uploaded to this github repository: ${repositoryUrl}`,
-      { type: PlatformMessageType.REPO_CREATED },
+      { type: PlatformMessageType.REPO_CREATED, githubUrl: repositoryUrl },
     ),
     ownerId,
   );
@@ -1088,6 +1099,8 @@ async function appIteration({
   });
 
   Instrumentation.trackGitHubCommitEnd(commitStartTime);
+
+  githubEntity.repositoryUrl = `https://github.com/${githubEntity.owner}/${appName}`;
 
   if (agentState) {
     await db
