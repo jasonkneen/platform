@@ -11,15 +11,15 @@ import {
   AgentStatus,
   agentSseEventSchema,
   type ConversationMessage,
+  DeployStatus,
   MessageKind,
   type MessageLimitHeaders,
   PlatformMessage,
   PlatformMessageType,
   PromptKind,
   StreamingError,
-  type TraceId,
-  DeployStatus,
   type TemplateId,
+  type TraceId,
 } from '@appdotbuild/core';
 import { nodeEventSource } from '@llm-eaf/node-event-source';
 import { createSession, type Session } from 'better-sse';
@@ -33,11 +33,8 @@ import { deployApp } from '../deploy';
 import { isDev } from '../env';
 import {
   addAppURL,
-  checkIfRepoExists,
   cloneRepository,
   commitChanges,
-  createInitialCommit,
-  createRepository,
   GithubEntity,
   type GithubEntityInitialized,
 } from '../github';
@@ -54,6 +51,7 @@ import {
   type ConversationData,
   conversationManager,
 } from './conversation-manager';
+import { createApp } from './create-app';
 import { applyDiff } from './diff';
 import { checkMessageUsageLimit } from './message-limit';
 import { MessageHandlerQueue } from './message-queue';
@@ -155,11 +153,20 @@ export async function postMessage(
     'x-dailylimit-reset': nextResetTime.toISOString(),
   };
 
+  const sseCORS = {
+    'Access-Control-Allow-Origin': request.headers.origin,
+    'Access-Control-Allow-Methods': 'POST',
+    'Access-Control-Allow-Headers':
+      'Content-Type, Authorization, Accept, Accept-Encoding, Connection, Cache-Control',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+
   reply.headers(userLimitHeader);
 
   const session = await createSession(request.raw, reply.raw, {
     headers: {
       ...userLimitHeader,
+      ...sseCORS,
     },
   });
 
@@ -554,6 +561,7 @@ export async function postMessage(
 
             const parsedCLIMessage = {
               ...completeParsedMessage,
+              appId: applicationId,
               message: minimalMessage,
             };
 
@@ -768,6 +776,7 @@ export async function postMessage(
                   new PlatformMessage(
                     AgentStatus.IDLE,
                     traceId!,
+                    applicationId,
                     `Your application is being deployed to ${deployResult.appURL}`,
                     {
                       type: PlatformMessageType.DEPLOYMENT_IN_PROGRESS,
@@ -907,7 +916,10 @@ export async function postMessage(
       },
       'info',
     );
-    session.push({ done: true, traceId: traceId }, 'done');
+    session.push(
+      { done: true, traceId: traceId, appId: applicationId },
+      'done',
+    );
     session.removeAllListeners();
 
     reply.raw.end();
@@ -1005,34 +1017,18 @@ async function appCreation({
     traceId,
   });
 
-  const repoCreationStartTime = Instrumentation.trackGitHubRepoCreation();
-
-  const { repositoryUrl, appName: newAppName } = await createUserUpstreamApp({
+  // Use the isolated createApp function with the existing applicationId
+  const result = await createApp({
+    applicationId, // Pass the existing applicationId
     appName,
     githubEntity,
-    files,
-  });
-
-  Instrumentation.trackGitHubRepoCreationEnd(repoCreationStartTime);
-
-  if (!repositoryUrl) {
-    throw new Error('Repository URL not found');
-  }
-
-  githubEntity.repositoryUrl = repositoryUrl;
-
-  await db.insert(apps).values({
-    id: applicationId,
-    name: appName,
-    clientSource: requestBody.clientSource,
     ownerId,
+    clientSource: requestBody.clientSource,
     traceId,
     agentState,
-    repositoryUrl,
-    appName: newAppName,
-    githubUsername: githubEntity.githubUsername,
     databricksApiKey: requestBody.databricksApiKey,
     databricksHost: requestBody.databricksHost,
+    files,
   });
 
   streamLog(
@@ -1066,13 +1062,17 @@ async function appCreation({
     new PlatformMessage(
       AgentStatus.IDLE,
       traceId as TraceId,
-      `Your application has been uploaded to this github repository: ${repositoryUrl}`,
-      { type: PlatformMessageType.REPO_CREATED, githubUrl: repositoryUrl },
+      applicationId,
+      `Your application has been uploaded to this github repository: ${result.repositoryUrl}`,
+      {
+        type: PlatformMessageType.REPO_CREATED,
+        githubUrl: result.repositoryUrl,
+      },
     ),
     ownerId,
   );
 
-  return { newAppName };
+  return { newAppName: result.appName };
 }
 
 async function appIteration({
@@ -1126,55 +1126,12 @@ async function appIteration({
     new PlatformMessage(
       AgentStatus.IDLE,
       traceId as TraceId,
+      applicationId,
       `committed in existing app - commit url: ${commitUrl}`,
       { type: PlatformMessageType.COMMIT_CREATED },
     ),
     userId,
   );
-}
-
-async function createUserUpstreamApp({
-  appName,
-  githubEntity,
-  files,
-}: {
-  appName: string;
-  githubEntity: GithubEntityInitialized;
-  files: ReturnType<typeof readDirectoryRecursive>;
-}) {
-  const repoExists = await checkIfRepoExists({
-    appName,
-    githubEntity,
-  });
-
-  if (repoExists) {
-    appName = `${appName}-${uuidv4().slice(0, 4)}`;
-    app.log.info({
-      message: 'Repository exists, generated new app name',
-      appName,
-    });
-  }
-
-  githubEntity.repo = appName;
-
-  const { repositoryUrl } = await createRepository({
-    githubEntity,
-  });
-
-  app.log.info({
-    message: 'Repository created',
-    repositoryUrl,
-    appName,
-  });
-
-  const { commitSha: initialCommitSha } = await createInitialCommit({
-    githubEntity,
-    paths: files,
-  });
-
-  const initialCommitUrl = `https://github.com/${githubEntity.owner}/${appName}/commit/${initialCommitSha}`;
-
-  return { repositoryUrl, appName, initialCommitUrl };
 }
 
 function getExistingConversationBody({
@@ -1219,7 +1176,10 @@ function createStreamLogger(
 
     // only push if is neon employee
     if (isNeonEmployee) {
-      session.push({ log: logData.message, level }, 'debug');
+      session.push(
+        { log: logData.message, level, appId: logData.applicationId },
+        'debug',
+      );
     }
   };
 }
