@@ -1,3 +1,5 @@
+import { Layout } from './components/layout/layout';
+import { stackClientApp } from './lib/auth';
 import {
   createRootRoute,
   createRoute,
@@ -6,8 +8,6 @@ import {
   redirect,
 } from '@tanstack/react-router';
 import { queryClient } from '~/lib/queryClient';
-import { Layout } from './components/layout/layout';
-import { stackClientApp } from './lib/auth';
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -39,7 +39,7 @@ const authRoute = createRoute({
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-}).lazy(() => import('./pages/home-page').then((d) => d.HomePageRoute));
+}).lazy(() => import('./pages/home').then((d) => d.HomePageRoute));
 
 const appRoute = createRoute({
   getParentRoute: () => rootRoute,
