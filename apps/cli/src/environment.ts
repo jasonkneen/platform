@@ -6,7 +6,8 @@ const BACKEND_DEV_API_HOST =
   'https://platform-main-appbuild-dev-6fdad96f.koyeb.app/';
 const BACKEND_LOCAL_API_HOST = 'http://127.0.0.1:4444';
 
-const AUTH_HOST_PRODUCTION = 'https://app.build';
+// TODO: change to https://app.build once we deploy the web version in there
+const AUTH_HOST_PRODUCTION = 'https://platform-web-neondatabase.vercel.app/';
 const AUTH_HOST_DEV = 'http://localhost:5173';
 
 export function getBackendHost() {
