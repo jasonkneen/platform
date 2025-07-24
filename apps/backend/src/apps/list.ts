@@ -2,13 +2,13 @@ import type { Paginated } from '@appdotbuild/core';
 import { desc, eq, getTableColumns, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { apps, db } from '../db';
-import { checkMessageUsageLimit } from './message-limit';
 import type { App } from '../db/schema';
+import { checkMessageUsageLimit } from './message-limit';
 
 export async function listApps(
   request: FastifyRequest,
   reply: FastifyReply,
-): Promise<Paginated<App>> {
+): Promise<Paginated<Pick<App, 'id' | 'appName' | 'name' | 'createdAt'>>> {
   const user = request.user;
 
   const { dailyMessageLimit, nextResetTime, remainingMessages, currentUsage } =
@@ -36,7 +36,7 @@ export async function listApps(
   const pageNum = Math.max(1, Number(page));
   const offset = (pageNum - 1) * pagesize;
 
-  const { ...columns } = getTableColumns(apps);
+  const { id, appName, name, createdAt } = getTableColumns(apps);
 
   const countResultP = db
     .select({ count: sql`count(*)` })
@@ -44,7 +44,7 @@ export async function listApps(
     .where(eq(apps.ownerId, user.id));
 
   const appsP = db
-    .select(columns)
+    .select({ id, appName, name, createdAt })
     .from(apps)
     .where(eq(apps.ownerId, user.id))
     .orderBy(desc(apps.createdAt))
