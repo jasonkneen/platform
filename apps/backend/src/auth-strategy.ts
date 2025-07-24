@@ -2,7 +2,8 @@ import type { FastifyRequest } from 'fastify';
 import { StackServerApp, type ServerUser } from '@stackframe/stack';
 import * as jose from 'jose';
 import { logger } from './logger';
-import { getUserData, isNeonEmployee } from './github';
+import { getUserData } from './github';
+import { generateUserRole, isPrivilegedUser } from './users';
 
 type AuthError = {
   error: string;
@@ -13,7 +14,7 @@ export async function validateAuth(request: FastifyRequest): Promise<
   | (ServerUser & {
       githubAccessToken: string;
       githubUsername: string;
-      isNeonEmployee: boolean;
+      isPrivilegedUser: boolean;
     })
   | AuthError
 > {
@@ -92,18 +93,18 @@ export async function validateAuth(request: FastifyRequest): Promise<
 
     const githubUsername = userData.data.login;
 
-    const neonEmployee = await isNeonEmployee(
-      githubAccessToken?.accessToken as string,
+    // 'platform_admin' | 'staff' | 'member'
+    const existingRole = user.clientReadOnlyMetadata?.role;
+    const newRole = await generateUserRole({
       githubUsername,
-    );
-
-    const NEON_EMPLOYEE_GROUP = 'neon';
-    const userGroup = user.clientReadOnlyMetadata?.user_group;
-    if (neonEmployee && userGroup !== NEON_EMPLOYEE_GROUP) {
+      githubAccessToken: githubAccessToken?.accessToken as string,
+      email: user.primaryEmail as string,
+    });
+    if (existingRole !== newRole) {
       await user.update({
         clientReadOnlyMetadata: {
           ...user.clientReadOnlyMetadata,
-          user_group: NEON_EMPLOYEE_GROUP,
+          role: newRole,
         },
       });
     }
@@ -112,7 +113,7 @@ export async function validateAuth(request: FastifyRequest): Promise<
       ...user,
       githubUsername,
       githubAccessToken: githubAccessToken?.accessToken as string,
-      isNeonEmployee: neonEmployee,
+      isPrivilegedUser: isPrivilegedUser(newRole),
     };
   } catch (error) {
     logger.error('Stack Auth API call failed', { error });
