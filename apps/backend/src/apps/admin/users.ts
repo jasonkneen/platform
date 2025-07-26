@@ -13,14 +13,16 @@ import {
 } from 'drizzle-orm';
 import { usersSync as users } from 'drizzle-orm/neon';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { apps, db } from '../../db';
+import { apps, db, customMessageLimits } from '../../db';
 
 type User = typeof users.$inferSelect;
 
 export async function listUsersForAdmin(
   request: FastifyRequest,
   reply: FastifyReply,
-): Promise<Paginated<User & { appsCount?: number }>> {
+): Promise<
+  Paginated<User & { appsCount?: number; dailyMessageLimit?: number }>
+> {
   const {
     limit = 10,
     page = 1,
@@ -80,12 +82,19 @@ export async function listUsersForAdmin(
     .from(users)
     .where(and(...filterConditions));
 
+  const DEFAULT_MESSAGE_LIMIT = Number(process.env.DAILY_MESSAGE_LIMIT) || 10;
+
   const usersQuery = db
     .select({
       ...columns,
       appsCount: db.$count(apps, eq(apps.ownerId, users.id)),
+      dailyMessageLimit:
+        sql<number>`COALESCE(${customMessageLimits.dailyLimit}, ${DEFAULT_MESSAGE_LIMIT})`.as(
+          'dailyMessageLimit',
+        ),
     })
     .from(users)
+    .leftJoin(customMessageLimits, eq(users.id, customMessageLimits.userId))
     .orderBy(orderBy)
     .limit(pagesize)
     .offset(offset)
@@ -103,4 +112,68 @@ export async function listUsersForAdmin(
       totalPages: Math.ceil(totalCount / pagesize),
     },
   };
+}
+
+export async function updateUserForAdmin(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const MAX_DAILY_MESSAGE_LIMIT = 1000;
+  const { id: userId } = request.params as { id: string };
+  const { dailyMessageLimit } = request.body as { dailyMessageLimit?: number };
+
+  // Validate input - only allow dailyMessageLimit updates
+  if (dailyMessageLimit === undefined) {
+    return reply.status(400).send({
+      error: 'dailyMessageLimit is required',
+    });
+  }
+
+  if (!Number.isInteger(dailyMessageLimit) || dailyMessageLimit < 1) {
+    return reply.status(400).send({
+      error: 'dailyMessageLimit must be a positive integer',
+    });
+  }
+
+  if (dailyMessageLimit > MAX_DAILY_MESSAGE_LIMIT) {
+    return reply.status(400).send({
+      error: 'dailyMessageLimit must be less than 10,000',
+    });
+  }
+
+  // Check if user exists
+  const existingUser = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (existingUser.length === 0) {
+    return reply.status(404).send({
+      error: 'User not found',
+    });
+  }
+
+  const user = existingUser[0];
+
+  // Upsert custom message limit
+  await db
+    .insert(customMessageLimits)
+    .values({
+      userId,
+      dailyLimit: dailyMessageLimit,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: customMessageLimits.userId,
+      set: {
+        dailyLimit: dailyMessageLimit,
+        updatedAt: new Date(),
+      },
+    });
+
+  return reply.send({
+    ...user,
+    dailyMessageLimit,
+  });
 }
