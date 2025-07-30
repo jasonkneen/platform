@@ -1,25 +1,39 @@
 import { createLazyRoute, useParams } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { ChatContainer } from '~/components/chat/chat-container';
-import { ChatInput } from '~/components/chat/chat-input';
-import { ChatMessageLimit } from '~/components/chat/chat-message-limit';
 import { ChatPageLoading } from '~/components/chat/chat-page-loading';
 import { AnalyticsEvents, sendPageView } from '~/external/segment';
 import { useApp } from '~/hooks/useApp';
 import { useCurrentApp } from '~/hooks/useCurrentApp';
+import { useLayout } from '~/hooks/useLayout';
+import { useWindowSize } from '~/hooks/useWindowSize';
+import { DesktopChat } from '~/components/chat/desktop-chat';
+import { MobileChat } from '~/components/chat/mobile-chat';
 
 export const AppPageRoute = createLazyRoute('/apps/$appId')({
   component: AppPage,
 });
 
+const X_LARGE_SCREEN_WIDTH = 1279;
+
 export function AppPage() {
   const { currentAppState } = useCurrentApp();
+  const { width } = useWindowSize();
   const { appId } = useParams({ from: '/apps/$appId' });
-  const { isLoading } = useApp(appId);
+  const { setMxAuto } = useLayout();
+  const { isLoading, app } = useApp(appId);
 
   useEffect(() => {
     sendPageView(AnalyticsEvents.PAGE_VIEW_APP);
   }, []);
+
+  useEffect(() => {
+    if (app?.appUrl && width > X_LARGE_SCREEN_WIDTH) {
+      setMxAuto(false);
+    }
+
+    return () => setMxAuto(true);
+  }, [app?.appUrl, setMxAuto, width]);
 
   const renderContent = () => {
     if (isLoading && currentAppState === 'idle') {
@@ -33,18 +47,17 @@ export function AppPage() {
   };
 
   return (
-    <div className="flex flex-col items-center w-full h-full mt-24 overflow-hidden">
-      {renderContent()}
-      <div
-        className="fixed bottom-5 left-1/2 transform -translate-x-1/2 w-4/5 max-w-4xl"
-        style={{ viewTransitionName: 'chat-input' }}
-      >
-        <div className="flex flex-col gap-2">
-          <ChatMessageLimit />
-          <ChatInput />
-        </div>
-      </div>
-      <div className="w-full h-10 md:h-24" />
-    </div>
+    <>
+      <MobileChat
+        appUrl={app?.appUrl}
+        renderContent={renderContent}
+        deployStatus={app?.deployStatus}
+      />
+      <DesktopChat
+        appUrl={app?.appUrl}
+        renderContent={renderContent}
+        deployStatus={app?.deployStatus}
+      />
+    </>
   );
 }
