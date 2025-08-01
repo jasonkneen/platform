@@ -43,7 +43,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        'flex flex-col h-screen w-5/6 md:w-4/5 gap-2 overflow-hidden',
+        'flex flex-col h-screen w-5/6 md:w-4/5 gap-2 overflow-x-hidden',
         {
           'mx-auto': mxAuto,
         },

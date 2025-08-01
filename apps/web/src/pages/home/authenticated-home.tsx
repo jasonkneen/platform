@@ -22,7 +22,7 @@ export function AuthenticatedHome() {
   }, [clearCurrentApp]);
 
   return (
-    <section className="hero relative grow overflow-hidden">
+    <section className="hero relative grow overflow-x-hidden overflow-y-auto">
       <div
         data-testid="authenticated-home"
         className="w-full h-full flex flex-col gap-12 lg:gap-20 pt-20 md:pt-24 lg:pt-48 xl:pt-56 items-center"
