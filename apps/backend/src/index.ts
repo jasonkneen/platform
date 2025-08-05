@@ -3,7 +3,6 @@ import { config } from 'dotenv';
 import { app } from './app';
 import {
   appById,
-  appByIdUrl,
   getAppByIdForAdmin,
   getUserMessageLimit,
   listAllAppsForAdmin,
@@ -13,11 +12,16 @@ import {
 import { sendAnalyticsEvent } from './apps/analytics-events';
 import { appHistory } from './apps/app-history';
 import { getKoyebDeploymentEndpoint } from './deploy';
-import { dockerLoginIfNeeded } from './docker';
 import { validateEnv } from './env';
 import { logger } from './logger';
 import { requirePrivilegedUser } from './middleware/neon-employee-auth';
 import { listUsersForAdmin, updateUserForAdmin } from './apps/admin/users';
+import {
+  getAppAgentSnapshotMetadata,
+  getAppLogFolders,
+  getAppSingleIterationJsonData,
+} from './apps/admin/app-agent-snaphots';
+import { dockerLoginIfNeeded } from './docker';
 
 config({ path: '.env' });
 validateEnv();
@@ -32,8 +36,8 @@ app.get('/auth/is-privileged-user', authHandler, async (request, reply) => {
 app.get('/apps', authHandler, listApps);
 app.get('/apps/:id', authHandler, appById);
 app.get('/apps/:id/history', authHandler, appHistory);
-app.get('/apps/:id/read-url', authHandler, appByIdUrl);
 
+// *********** Admin routes ***********
 app.get(
   '/admin/apps',
   { onRequest: [app.authenticate, requirePrivilegedUser] },
@@ -54,6 +58,23 @@ app.put(
   '/admin/users/:id',
   { onRequest: [app.authenticate, requirePrivilegedUser] },
   updateUserForAdmin,
+);
+
+// Admin Agent Snapshots routes
+app.get(
+  '/admin/apps/:id/logs',
+  { onRequest: [app.authenticate, requirePrivilegedUser] },
+  getAppLogFolders,
+);
+app.get(
+  '/admin/apps/:id/logs/:traceId/metadata',
+  { onRequest: [app.authenticate, requirePrivilegedUser] },
+  getAppAgentSnapshotMetadata,
+);
+app.get(
+  '/admin/apps/:id/logs/:traceId/iterations/:iteration/json',
+  { onRequest: [app.authenticate, requirePrivilegedUser] },
+  getAppSingleIterationJsonData,
 );
 
 app.post(

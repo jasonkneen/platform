@@ -117,12 +117,11 @@ export const ResourceMenuItem = ({
 
       // Clear filters if we're in a list context
       if (storeContext?.reset) {
-        console.log('clearing filters');
         storeContext.reset();
       }
 
       // Navigate after clearing filters
-      navigate(to, { state: { _scrollToTop: true } });
+      void navigate(to, { state: { _scrollToTop: true } });
 
       // Call the original onClick handler for mobile sidebar
       if (onClick) {
