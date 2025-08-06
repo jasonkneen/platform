@@ -92,20 +92,24 @@ body:
     validations:
       required: false
 
-  - type: markdown
-    attributes:
-      value: |
-        <details>
-        <summary><b>App Info & Environment</b> (click to expand)</summary>
+# ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 
-        - **App Name:** ${{ inputs.app-name }}
-        - **App ID:** ${{ inputs.app-id }}
-        - **Trace ID:** ${{ inputs.trace-id }}
-        - **Tech Stack:** ${{ inputs.tech-stack }}
-        - **Deploy Status:** ${{ inputs.deploy-status }}
-        - **App URL:** ${{ inputs.app-url }}
-        - **Repository:** ${{ inputs.repository }}
-        - **Browser:** ${{ inputs.browser }}
-        - **Operating System:** ${{ inputs.os }}
+output: |
+  ## Describe the issue
 
-        </details>
+  ${{ inputs.what-happened }}
+
+  <details>
+  <summary><b>App Info & Environment</b> (click to expand)</summary>
+
+  - **App Name:** ${{ inputs.app-name }}
+  - **App ID:** ${{ inputs.app-id }}
+  - **Trace ID:** ${{ inputs.trace-id }}
+  - **Tech Stack:** ${{ inputs.tech-stack }}
+  - **Deploy Status:** ${{ inputs.deploy-status }}
+  - **App URL:** ${{ inputs.app-url }}
+  - **Repository:** ${{ inputs.repository }}
+  - **Browser:** ${{ inputs.browser }}
+  - **Operating System:** ${{ inputs.os }}
+
+  </details>
