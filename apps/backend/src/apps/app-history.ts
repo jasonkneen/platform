@@ -1,6 +1,8 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { appPrompts, apps, db, type AppPrompts } from '../db';
+import { validate } from 'uuid';
+import { logger } from '../logger';
 
 export async function appHistory(
   request: FastifyRequest,
@@ -11,6 +13,11 @@ export async function appHistory(
 
   if (!id) {
     return reply.status(400).send({ error: 'App ID is required' });
+  }
+
+  if (!validate(id)) {
+    logger.error('Invalid app ID', { id });
+    return reply.status(400).send({ error: 'Invalid app ID' });
   }
 
   const promptHistory = await getAppPromptHistoryForUI(id, userId);
