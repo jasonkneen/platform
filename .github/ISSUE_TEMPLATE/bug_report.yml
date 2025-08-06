@@ -4,6 +4,7 @@ title: "[Bug]: "
 labels: ["bug", "Web"]
 assignees:
   - pffigueiredo
+
 body:
   - type: markdown
     attributes:
@@ -18,15 +19,6 @@ body:
       placeholder: Describe what happened with as much detail as possible
     validations:
       required: true
-
-  - type: markdown
-    attributes:
-      value: |
-        <details>
-        <summary><b>App Info & Environment</b> (auto-filled - click to expand)</summary>
-        
-        *The fields below are automatically filled from your app data. You don't need to edit them unless something is incorrect.*
-        </details>
 
   - type: input
     id: app-name
@@ -99,3 +91,21 @@ body:
       placeholder: e.g., macOS 10.15.7
     validations:
       required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        <details>
+        <summary><b>App Info & Environment</b> (click to expand)</summary>
+
+        - **App Name:** ${{ inputs.app-name }}
+        - **App ID:** ${{ inputs.app-id }}
+        - **Trace ID:** ${{ inputs.trace-id }}
+        - **Tech Stack:** ${{ inputs.tech-stack }}
+        - **Deploy Status:** ${{ inputs.deploy-status }}
+        - **App URL:** ${{ inputs.app-url }}
+        - **Repository:** ${{ inputs.repository }}
+        - **Browser:** ${{ inputs.browser }}
+        - **Operating System:** ${{ inputs.os }}
+
+        </details>
