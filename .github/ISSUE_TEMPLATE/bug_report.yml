@@ -1,10 +1,9 @@
 name: Bug Report
 description: Report a bug or issue with the app.build platform
-title: "[Bug]: "
+title: "[Issue]: "
 labels: ["bug", "Web"]
 assignees:
   - pffigueiredo
-
 body:
   - type: markdown
     attributes:
@@ -19,6 +18,11 @@ body:
       placeholder: Describe what happened with as much detail as possible
     validations:
       required: true
+
+  - type: markdown
+    attributes:
+      value: |
+          *The fields below are automatically filled from your app data. You don't need to edit them unless something is incorrect.*
 
   - type: input
     id: app-name
@@ -91,25 +95,3 @@ body:
       placeholder: e.g., macOS 10.15.7
     validations:
       required: false
-
-# ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-
-output: |
-  ## Describe the issue
-
-  ${{ inputs.what-happened }}
-
-  <details>
-  <summary><b>App Info & Environment</b> (click to expand)</summary>
-
-  - **App Name:** ${{ inputs.app-name }}
-  - **App ID:** ${{ inputs.app-id }}
-  - **Trace ID:** ${{ inputs.trace-id }}
-  - **Tech Stack:** ${{ inputs.tech-stack }}
-  - **Deploy Status:** ${{ inputs.deploy-status }}
-  - **App URL:** ${{ inputs.app-url }}
-  - **Repository:** ${{ inputs.repository }}
-  - **Browser:** ${{ inputs.browser }}
-  - **Operating System:** ${{ inputs.os }}
-
-  </details>
