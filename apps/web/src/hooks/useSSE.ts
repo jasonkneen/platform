@@ -244,7 +244,7 @@ export function useSSEMessageHandler(chatId: string | undefined) {
         const errorMessage =
           (error as any).status === 429
             ? 'Daily message limit exceeded. Please try again tomorrow.'
-            : 'An error occurred while processing your message. Please try again.';
+            : `An error occurred while processing your message. Please try again. ${error.message}`;
 
         messagesStore.addMessage(chatId, {
           id: 'error-message',
