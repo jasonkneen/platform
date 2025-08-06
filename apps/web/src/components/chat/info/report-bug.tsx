@@ -57,8 +57,8 @@ export function ReportBug({ app }: ReportBugProps) {
   return (
     <Button
       size="sm"
-      variant="outline"
-      className="h-7 text-xs text-muted-foreground hover:text-red-500"
+      variant="ghost"
+      className="h-7 text-xs text-muted-foreground hover:text-red-500 hover:brightness-95"
       onClick={handleReportBug}
     >
       <Bug className="w-3 h-3 mr-1" />

@@ -1,5 +1,5 @@
 import { useParams } from '@tanstack/react-router';
-import { Info } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useRef, useState } from 'react';
 import {
   Accordion,
@@ -48,11 +48,12 @@ export function ChatInfo() {
         onValueChange={handleValueChange}
       >
         <AccordionItem value="info" className="border-0">
-          <AccordionTrigger className="flex items-center justify-between w-full px-4 py-3 text-sm font-medium text-foreground bg-background border border-input rounded-lg hover:bg-muted/50 hover:no-underline transition-colors cursor-pointer">
-            <div className="flex items-center gap-2">
-              <Info className="h-4 w-4" />
-              <span>App Info</span>
-            </div>
+          <AccordionTrigger
+            showChevron={false}
+            className="flex gap-2 items-center justify-between w-full px-4 py-3 text-sm font-medium text-foreground bg-background border border-input rounded-lg hover:bg-muted/50 hover:no-underline transition-colors cursor-pointer"
+          >
+            <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+            <div className="flex items-center gap-2">App Info</div>
             <div className="ml-auto mr-2">
               <ReportBug app={app} />
             </div>
