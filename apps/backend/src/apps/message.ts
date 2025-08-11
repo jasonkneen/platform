@@ -26,7 +26,7 @@ import { nodeEventSource } from '@llm-eaf/node-event-source';
 import { createSession, type Session } from 'better-sse';
 import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4, validate } from 'uuid';
 import { app } from '../app';
 import { getAgentHost } from '../apps/env';
 import { appPrompts, apps, db } from '../db';
@@ -104,7 +104,7 @@ const logsFolder = path.join(__dirname, '..', '..', 'logs');
 const appExistsInDb = async (
   applicationId: string | undefined,
 ): Promise<boolean> => {
-  if (!applicationId) {
+  if (!applicationId || !validate(applicationId)) {
     return false;
   }
 
