@@ -73,8 +73,9 @@ async function deployToKoyeb({
     throw new Error('Failed to create Neon database');
   }
 
-  const deployment = await db
+  const userDeployments = await db
     .select({
+      appId: deployments.appId,
       koyebOrgId: deployments.koyebOrgId,
       koyebOrgName: deployments.koyebOrgName,
       koyebOrgEcrSecretId: deployments.koyebOrgEcrSecretId,
@@ -82,15 +83,22 @@ async function deployToKoyeb({
     .from(deployments)
     .where(eq(deployments.ownerId, currentApp.ownerId!));
 
-  let koyebOrgId = deployment[0]?.koyebOrgId;
-  let koyebOrgName = deployment[0]?.koyebOrgName;
-  let koyebOrgEcrSecretId = deployment[0]?.koyebOrgEcrSecretId;
+  // Check if we already have a deployment for this specific app
+  const existingAppDeployment = userDeployments.find((d) => d.appId === appId);
+  // Get org info from any user deployment
+  const orgInfo = userDeployments.find((d) => d.koyebOrgId);
+
+  let koyebOrgId = orgInfo?.koyebOrgId;
+  let koyebOrgName = orgInfo?.koyebOrgName;
+  let koyebOrgEcrSecretId = orgInfo?.koyebOrgEcrSecretId;
 
   if (!koyebOrgId) {
     ({ koyebOrgId, koyebOrgName } = await createKoyebOrganization(
       githubUsername!,
     ));
+  }
 
+  if (!existingAppDeployment) {
     await db.insert(deployments).values({
       appId,
       ownerId: currentApp.ownerId!,
