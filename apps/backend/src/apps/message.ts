@@ -761,6 +761,13 @@ export async function postMessage(
                       traceId!,
                     ),
                   );
+
+                  Instrumentation.captureError(error, {
+                    applicationId: applicationId!,
+                    traceId: traceId!,
+                    userId,
+                    context: 'deploy_app_error',
+                  });
                 });
 
               Instrumentation.trackDeploymentEnd(deployStartTime, 'complete');
