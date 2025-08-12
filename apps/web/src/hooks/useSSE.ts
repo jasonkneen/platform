@@ -76,7 +76,7 @@ export function useSSEQuery(options: UseSSEQueryOptions = {}) {
   const lastAppIdRef = useRef<string | undefined>(undefined);
   const queryClient = useQueryClient();
   const user = useUser();
-  const isStaff = user?.clientReadOnlyMetadata.role === 'staff';
+  const isStaff = user?.clientReadOnlyMetadata?.role === 'staff';
 
   optionsRef.current = options;
 
