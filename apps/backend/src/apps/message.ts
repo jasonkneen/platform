@@ -4,6 +4,7 @@ import path from 'node:path';
 import type {
   AgentSseEventMessage,
   Optional,
+  PlatformAppsLimitHeaders,
   PromptKindType,
 } from '@appdotbuild/core';
 import {
@@ -21,6 +22,7 @@ import {
   type TemplateId,
   type TraceId,
   extractApplicationIdFromTraceId,
+  API_ERROR_CODE,
 } from '@appdotbuild/core';
 import { nodeEventSource } from '@llm-eaf/node-event-source';
 import { createSession, type Session } from 'better-sse';
@@ -56,6 +58,11 @@ import { createApp } from './create-app';
 import { applyDiff } from './diff';
 import { checkMessageUsageLimit } from './message-limit';
 import { MessageHandlerQueue } from './message-queue';
+import {
+  DAILY_APPS_LIMIT,
+  getAppsDailyLimitResetTime,
+  userReachedPlatformLimit,
+} from './apps-limit';
 
 type Body = {
   applicationId?: string;
@@ -138,13 +145,40 @@ export async function postMessage(
     remainingMessages,
     currentUsage,
   } = await checkMessageUsageLimit(userId);
-
   if (isUserLimitReached) {
     app.log.error({
       message: 'Daily message limit reached',
       userId,
     });
-    return reply.status(429).send();
+    return reply.status(429).send({
+      code: API_ERROR_CODE.DAILY_MESSAGE_LIMIT_REACHED,
+      message: 'Daily message limit reached. Please try again tomorrow.',
+    });
+  }
+
+  const requestBody = request.body as RequestBody;
+  let applicationId = requestBody.applicationId;
+  let isPermanentApp = await appExistsInDb(applicationId);
+  const hasReachedPlatformLimit = await userReachedPlatformLimit(request);
+  if (!isPermanentApp && hasReachedPlatformLimit) {
+    app.log.error({
+      message: 'Daily apps limit reached.',
+      userId,
+    });
+    Instrumentation.captureError(new Error('Daily apps limit reached'), {
+      userId,
+      context: API_ERROR_CODE.DAILY_APPS_LIMIT_REACHED,
+    });
+
+    const platformAppsLimitHeaders: PlatformAppsLimitHeaders = {
+      'x-daily-apps-limit': DAILY_APPS_LIMIT,
+      'x-daily-apps-reset': getAppsDailyLimitResetTime().toISOString(),
+    };
+    reply.headers(platformAppsLimitHeaders);
+    return reply.status(429).send({
+      code: API_ERROR_CODE.DAILY_APPS_LIMIT_REACHED,
+      message: 'Platform daily apps limit reached. Please try again tomorrow.',
+    });
   }
 
   const userLimitHeader: MessageLimitHeaders = {
@@ -176,8 +210,6 @@ export async function postMessage(
   const abortController = new AbortController();
   const githubUsername = request.user.githubUsername;
   const githubAccessToken = request.user.githubAccessToken;
-  const requestBody = request.body as RequestBody;
-  let applicationId = requestBody.applicationId;
   let traceId = requestBody.traceId;
 
   request.socket.on('close', () => {
@@ -247,7 +279,6 @@ export async function postMessage(
     };
 
     let appName: string | null = null;
-    let isPermanentApp = await appExistsInDb(applicationId);
     if (applicationId) {
       app.log.info({
         message: 'Processing existing applicationId',
