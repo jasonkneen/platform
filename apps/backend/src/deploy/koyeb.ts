@@ -73,9 +73,23 @@ export async function getOrganizationToken(orgId: string) {
     },
   );
 
-  const data = (await response.json()) as KoyebOrgSwitchResponse;
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to get organization token', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    throw new Error(error);
+  }
 
-  return data.token.id;
+  const data = (await response.json()) as KoyebOrgSwitchResponse;
+  const tokenId = data?.token?.id;
+  if (!tokenId) {
+    throw new Error('Token ID not found in the response');
+  }
+
+  return tokenId;
 }
 
 export async function createKoyebApp({
@@ -95,9 +109,23 @@ export async function createKoyebApp({
     }),
   });
 
-  const data = (await response.json()) as CreateKoyebAppResponse;
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to create Koyeb app', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    throw new Error(error);
+  }
 
-  return { created: true, koyebAppId: data.app.id };
+  const data = (await response.json()) as CreateKoyebAppResponse;
+  const appId = data?.app?.id;
+  if (!appId) {
+    throw new Error('App ID not found in the response');
+  }
+
+  return { created: true, koyebAppId: appId };
 }
 
 export async function createKoyebService({
@@ -128,11 +156,30 @@ export async function createKoyebService({
     }),
   });
 
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to create Koyeb service', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    throw new Error(error);
+  }
+
   const data = await response.json();
+  const serviceId = data?.service?.id;
+  const deploymentId = data?.service?.latest_deployment_id;
+  
+  if (!serviceId) {
+    throw new Error('Service ID not found in the response');
+  }
+  if (!deploymentId) {
+    throw new Error('Deployment ID not found in the response');
+  }
 
   return {
-    koyebServiceId: data.service.id,
-    deploymentId: data.service.latest_deployment_id,
+    koyebServiceId: serviceId,
+    deploymentId: deploymentId,
   };
 }
 
@@ -166,11 +213,30 @@ export async function updateKoyebService({
     },
   );
 
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to update Koyeb service', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    throw new Error(error);
+  }
+
   const data = await response.json();
+  const updatedServiceId = data?.service?.id;
+  const updatedDeploymentId = data?.service?.latest_deployment_id;
+  
+  if (!updatedServiceId) {
+    throw new Error('Service ID not found in the response');
+  }
+  if (!updatedDeploymentId) {
+    throw new Error('Deployment ID not found in the response');
+  }
 
   return {
-    koyebServiceId: data.service.id,
-    deploymentId: data.service.latest_deployment_id,
+    koyebServiceId: updatedServiceId,
+    deploymentId: updatedDeploymentId,
   };
 }
 
@@ -201,9 +267,22 @@ export async function createEcrSecret({
     }),
   });
 
-  const data = await response.json();
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to create ECR secret', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    throw new Error(error);
+  }
 
-  return data.secret.id;
+  const responseData = await response.json();
+  const secretId = responseData?.secret?.id;
+  if (!secretId) {
+    throw new Error('Secret ID not found in the response');
+  }
+  return secretId;
 }
 
 export async function updateEcrSecret({
@@ -235,9 +314,23 @@ export async function updateEcrSecret({
     }),
   });
 
-  const data = await response.json();
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to update ECR secret', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    throw new Error(error);
+  }
 
-  return data.secret.id;
+  const responseData = await response.json();
+  const updatedSecretId = responseData?.secret?.id;
+  if (!updatedSecretId) {
+    throw new Error('Secret ID not found in the response');
+  }
+
+  return updatedSecretId;
 }
 
 export async function createKoyebDomain({
@@ -262,9 +355,23 @@ export async function createKoyebDomain({
     }),
   });
 
-  const data = await response.json();
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to create Koyeb domain', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    throw new Error(error);
+  }
 
-  return { koyebDomainId: data.domain.id as string };
+  const data = await response.json();
+  const domainId = data?.domain?.id;
+  if (!domainId) {
+    throw new Error('Domain ID not found in the response');
+  }
+
+  return { koyebDomainId: domainId as string };
 }
 
 export async function getKoyebDomain({
@@ -284,9 +391,23 @@ export async function getKoyebDomain({
     },
   );
 
-  const data = await response.json();
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to get Koyeb domain', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    throw new Error(error);
+  }
 
-  return { koyebDomainName: data.domain.name };
+  const data = await response.json();
+  const domainName = data?.domain?.name;
+  if (!domainName) {
+    throw new Error('Domain name not found in the response');
+  }
+
+  return { koyebDomainName: domainName };
 }
 
 export async function getKoyebDeployment({
@@ -306,9 +427,23 @@ export async function getKoyebDeployment({
     },
   );
 
-  const data = await response.json();
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to get Koyeb deployment', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+    });
+    throw new Error(error);
+  }
 
-  return { koyebDeploymentStatus: data.deployment.status };
+  const data = await response.json();
+  const deploymentStatus = data?.deployment?.status;
+  if (!deploymentStatus) {
+    throw new Error('Deployment status not found in the response');
+  }
+
+  return { koyebDeploymentStatus: deploymentStatus };
 }
 
 export const getKoyebDeploymentEndpoint = async (
