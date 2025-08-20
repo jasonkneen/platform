@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 import { StackBadge } from '~/components/chat/stack/stack-badge';
 import { AnalyticsEvents, sendEvent } from '~/external/segment';
+import { DeleteAppButton } from './delete-app-button';
 
 interface ApplicationItemProps {
   app: App;
@@ -34,10 +35,18 @@ export function ApplicationItem({ app }: ApplicationItemProps) {
     >
       <div className="flex flex-col h-full justify-between">
         <div>
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="text-base font-medium text-foreground line-clamp-2 flex-1">
-              {app.appName || app.name}
-            </h3>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex justify-between gap-2 w-full">
+              <h3 className="text-base font-medium text-foreground line-clamp-2 flex-1">
+                {app.appName || app.name}
+              </h3>
+              <DeleteAppButton
+                appId={app.id}
+                appName={app.appName || app.name}
+                techStack={app.techStack}
+                createdDate={new Date(app.createdAt).toLocaleDateString()}
+              />
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             Created {new Date(app.createdAt).toLocaleDateString()}
