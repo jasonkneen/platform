@@ -37,7 +37,10 @@ export function ApplicationItem({ app }: ApplicationItemProps) {
         <div>
           <div className="flex items-start justify-between gap-2">
             <div className="flex justify-between gap-2 w-full items-start">
-              <h3 className="text-base font-medium text-foreground line-clamp-2 flex-1">
+              <h3
+                className="text-base font-medium text-foreground truncate flex-1"
+                title={app.appName || app.name}
+              >
                 {app.appName || app.name}
               </h3>
               <DeleteAppButton
