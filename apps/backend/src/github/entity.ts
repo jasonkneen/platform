@@ -2,7 +2,7 @@ import { Octokit } from '@octokit/rest';
 import { getUserInstallationId } from './utils';
 import { githubApp } from './app';
 
-const DEFAULT_OWNER = 'appdotbuilder';
+export const DEFAULT_OWNER = 'appdotbuilder';
 
 abstract class GithubEntityBase {
   public isOrg: boolean;

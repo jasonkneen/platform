@@ -11,6 +11,8 @@ import {
 } from '../deploy/koyeb';
 import { deleteNeonProject } from '../deploy/neon';
 import { deleteECRImages, deleteECRRepository } from '../ecr';
+import { DEFAULT_OWNER, GithubEntity } from '../github/entity';
+import { archiveRepository } from '../github/delete-repository';
 import { logger } from '../logger';
 
 export async function deleteApp(
@@ -35,6 +37,7 @@ export async function deleteApp(
         koyebDomainId: apps.koyebDomainId,
         neonProjectId: apps.neonProjectId,
         githubUsername: apps.githubUsername,
+        repositoryUrl: apps.repositoryUrl,
         deletedAt: apps.deletedAt,
       })
       .from(apps)
@@ -111,6 +114,13 @@ export async function deleteApp(
     await cleanupECRResources({
       appId: id,
       githubUsername: appData.githubUsername,
+    });
+
+    await cleanupGithubResources({
+      appId: id,
+      repositoryUrl: appData.repositoryUrl,
+      githubUsername: appData.githubUsername,
+      githubAccessToken: user.githubAccessToken,
     });
 
     return reply.status(200).send({
@@ -343,6 +353,113 @@ async function cleanupECRResources({
     logger.error('Failed to clean up ECR resources', {
       appId,
       githubUsername,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+}
+
+async function cleanupGithubResources({
+  appId,
+  repositoryUrl,
+  githubUsername,
+  githubAccessToken,
+}: {
+  appId: string;
+  repositoryUrl: string | null;
+  githubUsername: string | null;
+  githubAccessToken: string;
+}) {
+  if (!repositoryUrl || !githubUsername) {
+    logger.info(
+      'No GitHub repository URL or username available, skipping GitHub cleanup',
+      {
+        appId,
+        hasRepositoryUrl: !!repositoryUrl,
+        hasGithubUsername: !!githubUsername,
+      },
+    );
+    return;
+  }
+
+  try {
+    // Parse repository URL to extract owner and repo name
+    // Expected format: https://github.com/owner/repo
+    const urlMatch = repositoryUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    if (!urlMatch) {
+      logger.warn('Invalid GitHub repository URL format, skipping cleanup', {
+        appId,
+        repositoryUrl,
+      });
+      return;
+    }
+
+    const owner = urlMatch[1];
+    const repo = urlMatch[2];
+
+    if (!owner || !repo) {
+      logger.warn(
+        'Could not extract owner/repo from GitHub URL, skipping cleanup',
+        {
+          appId,
+          repositoryUrl,
+        },
+      );
+      return;
+    }
+
+    // Only archive repositories from the appdotbuilder organization
+    if (owner !== DEFAULT_OWNER) {
+      logger.info(
+        `Repository is not from ${DEFAULT_OWNER} organization, skipping cleanup`,
+        {
+          appId,
+          owner,
+          repo,
+        },
+      );
+      return;
+    }
+
+    logger.info('Starting GitHub repository cleanup', {
+      appId,
+      owner,
+      repo,
+      repositoryUrl,
+    });
+
+    const githubEntity = new GithubEntity(githubUsername, githubAccessToken);
+    const initializedEntity = await githubEntity.init();
+    initializedEntity.repo = repo;
+
+    const result = await archiveRepository({
+      githubEntity: initializedEntity,
+    });
+
+    if (result.statusCode === 200) {
+      logger.info('GitHub repository archived successfully', {
+        appId,
+        owner,
+        repo,
+        result,
+      });
+    } else {
+      logger.error('Failed to archive GitHub repository', {
+        appId,
+        owner,
+        repo,
+        error: result.error,
+      });
+    }
+
+    logger.info('GitHub repository cleanup completed', {
+      appId,
+      owner,
+      repo,
+    });
+  } catch (error) {
+    logger.error('Failed to clean up GitHub repository', {
+      appId,
+      repositoryUrl,
       error: error instanceof Error ? error.message : error,
     });
   }
