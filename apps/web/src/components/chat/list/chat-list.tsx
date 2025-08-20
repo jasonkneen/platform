@@ -67,12 +67,16 @@ export function ChatList() {
               )}
             >
               <div className="flex flex-col h-full justify-between animate-pulse">
-                <div>
-                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                    <div className="h-3 bg-muted rounded w-1/2"></div>
+                  </div>
+                  <div className="size-6 bg-muted rounded"></div>
                 </div>
-                <div className="flex justify-end">
-                  <div className="h-5 w-5 bg-muted rounded"></div>
+
+                <div className="flex items-center justify-between mt-4">
+                  <div className="h-4 bg-muted rounded w-20"></div>
                 </div>
               </div>
             </div>

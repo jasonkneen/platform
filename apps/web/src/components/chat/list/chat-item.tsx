@@ -1,6 +1,5 @@
 import type { App } from '@appdotbuild/core';
 import { useNavigate } from '@tanstack/react-router';
-import { ChevronRight } from 'lucide-react';
 import { StackBadge } from '~/components/chat/stack/stack-badge';
 import { AnalyticsEvents, sendEvent } from '~/external/segment';
 import { DeleteAppButton } from './delete-app-button';
@@ -17,7 +16,6 @@ export function ApplicationItem({ app }: ApplicationItemProps) {
     navigate({
       to: `/apps/${app.id}`,
       viewTransition: true,
-      replace: true,
     });
   };
 
@@ -61,7 +59,6 @@ export function ApplicationItem({ app }: ApplicationItemProps) {
             variant="outline"
             className="flex-shrink-0"
           />
-          <ChevronRight className="w-5 h-5 text-muted-foreground" />
         </div>
       </div>
     </div>
