@@ -29,8 +29,10 @@ import {
   DeployStatusType,
 } from '@appdotbuild/core/agent-message';
 import { TextInput, ToggleFilterButton, FilterBar } from '@/components/admin';
-import { stackClientApp } from '@/stack';
+import { AppStatusFilter } from '@/components/apps/app-status-filter';
+
 import { TemplateId } from '@appdotbuild/core/types/api';
+import { stackClientApp } from '@/stack';
 
 // Wrapper component that can access list context
 function AppListContent() {
@@ -41,7 +43,11 @@ function AppListContent() {
       rowClick={() => {
         return false;
       }}
-      rowClassName={() => {
+      rowClassName={(record) => {
+        const deletedAt = record?.deletedAt;
+        if (deletedAt) {
+          return 'cursor-default opacity-60 bg-red-50/50 dark:bg-red-950/20';
+        }
         return 'cursor-default';
       }}
       className="[&_td]:py-4 [&_th]:py-4"
@@ -81,6 +87,11 @@ function AppListContent() {
         field={UpdatedAtCell}
       />
       <DataTable.Col
+        label="Deleted At"
+        source="deletedAt"
+        field={DeletedAtCell}
+      />
+      <DataTable.Col
         label="Trace ID"
         source="traceId"
         field={(props) => <IdCell {...props} label="Trace ID" maxLength={20} />}
@@ -94,7 +105,17 @@ function AppListContent() {
 function MyAppsFilter() {
   const user = stackClientApp.useUser({ or: 'redirect' });
 
-  return <ToggleFilterButton label="My Apps" value={{ ownerId: user.id }} />;
+  return (
+    <ToggleFilterButton
+      label="My Apps"
+      value={{ ownerId: user.id }}
+      size="default"
+    />
+  );
+}
+
+function AppStatusFilterWrapper() {
+  return <AppStatusFilter />;
 }
 
 const appsFilters = [
@@ -103,6 +124,7 @@ const appsFilters = [
     filterLabels={{
       q: 'Search',
       ownerId: 'My Apps',
+      appStatus: 'Status',
     }}
   >
     <div className="flex-1 min-w-0">
@@ -112,8 +134,9 @@ const appsFilters = [
         label="Search"
       />
     </div>
-    <div className="flex items-end gap-3 flex-shrink-0 pb-1">
+    <div className="flex items-end gap-3 flex-shrink-0">
       <MyAppsFilter />
+      <AppStatusFilterWrapper />
     </div>
   </FilterBar>,
 ];
@@ -154,6 +177,23 @@ function StatusCell({ source }: { source: string }) {
 
   const deployStatus = record[source] as DeployStatusType;
   const appUrl = record.appUrl as string;
+  const deletedAt = record.deletedAt as string | null;
+
+  // Show deleted status if app is deleted
+  if (deletedAt) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <Badge variant="destructive">Deleted</Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>App deleted on {new Date(deletedAt).toLocaleDateString()}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
 
   switch (deployStatus) {
     case DeployStatus.DEPLOYED:
@@ -260,6 +300,27 @@ function UpdatedAtCell({ source }: { source: string }) {
 
   const date = record[source] as string;
   return <span>{format(date)}</span>;
+}
+
+function DeletedAtCell({ source }: { source: string }) {
+  const record = useRecordContext();
+  if (!record) return null;
+
+  const date = record[source] as string | null;
+  if (!date) return <span>-</span>;
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger>
+          <span className="text-destructive">{format(date)}</span>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Deleted on {new Date(date).toLocaleString()}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 function ClientSourceCell({ source }: { source: string }) {

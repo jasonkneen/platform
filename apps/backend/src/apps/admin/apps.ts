@@ -55,6 +55,7 @@ export async function listAllAppsForAdmin(
     order = 'desc',
     search = '',
     ownerId,
+    appStatus,
   } = request.query as {
     limit?: number;
     page?: number;
@@ -62,6 +63,7 @@ export async function listAllAppsForAdmin(
     order?: string;
     search?: string;
     ownerId?: string;
+    appStatus?: string;
   };
 
   if (limit > 100) {
@@ -94,7 +96,28 @@ export async function listAllAppsForAdmin(
   if (ownerId) {
     ownerConditions = eq(apps.ownerId, ownerId);
   }
-  const filterConditions = [searchConditions, ownerConditions];
+
+  // Build deletion status conditions based on appStatus
+  let appStatusConditions = undefined;
+  if (appStatus === 'active') {
+    // Only show active apps (not deleted)
+    appStatusConditions = sql`${apps.deletedAt} IS NULL`;
+  } else if (appStatus === 'deleted') {
+    // Only show deleted apps
+    appStatusConditions = sql`${apps.deletedAt} IS NOT NULL`;
+  } else if (appStatus === 'all') {
+    // Show all apps (both deleted and active) - no filter needed
+    appStatusConditions = undefined;
+  } else {
+    // Default: show all apps (both active and deleted)
+    appStatusConditions = undefined;
+  }
+
+  const filterConditions = [
+    searchConditions,
+    ownerConditions,
+    appStatusConditions,
+  ].filter(Boolean);
 
   const countQuery = db
     .select({ count: sql`count(*)` })

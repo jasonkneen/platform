@@ -388,7 +388,12 @@ const resourceHandlers = {
         field: 'createdAt',
         order: 'DESC',
       };
-      const { q: search, ownerId } = params.filter || {};
+      const {
+        q: search,
+        ownerId,
+        showDeleted,
+        appStatus,
+      } = params.filter || {};
 
       const queryParams = new URLSearchParams({
         page: page.toString(),
@@ -397,6 +402,8 @@ const resourceHandlers = {
         ...(field && { sort: field }),
         ...(order && { order: order.toLowerCase() }),
         ...(ownerId && { ownerId: ownerId.toString() }),
+        ...(showDeleted && { showDeleted: showDeleted.toString() }),
+        ...(appStatus && { appStatus: appStatus.toString() }),
       });
 
       const response = await apiClient.get<Paginated<App>>(
@@ -508,6 +515,12 @@ const resourceHandlers = {
       return {
         data: params.ids,
       };
+    },
+
+    // Custom restore action for apps
+    restore: async (id: string): Promise<AppRecord> => {
+      const response = await apiClient.post<App>(`/admin/apps/${id}/restore`);
+      return convertAppToRecord(response.data);
     },
   },
   users: {
