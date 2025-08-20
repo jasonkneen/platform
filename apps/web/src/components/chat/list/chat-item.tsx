@@ -36,7 +36,7 @@ export function ApplicationItem({ app }: ApplicationItemProps) {
       <div className="flex flex-col h-full justify-between">
         <div>
           <div className="flex items-start justify-between gap-2">
-            <div className="flex justify-between gap-2 w-full">
+            <div className="flex justify-between gap-2 w-full items-start">
               <h3 className="text-base font-medium text-foreground line-clamp-2 flex-1">
                 {app.appName || app.name}
               </h3>
