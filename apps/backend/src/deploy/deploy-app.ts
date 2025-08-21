@@ -169,6 +169,7 @@ async function deployToKoyeb({
     username: scopedPullToken.username,
     password: scopedPullToken.password,
     url: scopedPullToken.registry.replace('https://', ''),
+    koyebOrgId,
   };
 
   if (!koyebOrgEcrSecretId) {

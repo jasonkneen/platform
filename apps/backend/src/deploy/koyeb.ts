@@ -265,11 +265,13 @@ export async function createEcrSecret({
   username,
   password,
   url,
+  koyebOrgId,
 }: {
   token: string;
   username: string;
   password: string;
   url: string;
+  koyebOrgId: string;
 }) {
   const response = await fetch(`https://app.koyeb.com/v1/secrets`, {
     method: 'POST',
@@ -289,6 +291,23 @@ export async function createEcrSecret({
 
   if (!response.ok) {
     const error = await response.text();
+
+    if (error.includes('already exists')) {
+      const orgDeployments = await db
+        .select({
+          koyebOrgEcrSecretId: deployments.koyebOrgEcrSecretId,
+        })
+        .from(deployments)
+        .where(and(eq(deployments.koyebOrgId, koyebOrgId)))
+        .limit(1);
+
+      if (!orgDeployments[0]?.koyebOrgEcrSecretId) {
+        throw new Error('Secret already exists but no deployments found');
+      }
+
+      return orgDeployments[0].koyebOrgEcrSecretId;
+    }
+
     logger.error('Failed to create ECR secret', {
       status: response.status,
       statusText: response.statusText,
