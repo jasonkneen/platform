@@ -14,6 +14,7 @@ import { deleteECRImages, deleteECRRepository } from '../ecr';
 import { DEFAULT_OWNER, GithubEntity } from '../github/entity';
 import { archiveRepository } from '../github/delete-repository';
 import { logger } from '../logger';
+import { Instrumentation } from '../instrumentation';
 
 export async function deleteApp(
   request: FastifyRequest,
@@ -134,6 +135,12 @@ export async function deleteApp(
       error: error instanceof Error ? error.message : error,
     });
 
+    Instrumentation.captureError(error as Error, {
+      context: 'delete_app_main',
+      appId: id,
+      userId: user.id,
+    });
+
     return reply.status(500).send({
       error: 'Internal server error while deleting app',
     });
@@ -197,6 +204,12 @@ async function cleanupKoyebResources({
           serviceId: koyebServiceId,
           error: error instanceof Error ? error.message : error,
         });
+
+        Instrumentation.captureError(error as Error, {
+          context: 'delete_koyeb_service',
+          appId,
+          serviceId: koyebServiceId,
+        });
       }
     }
 
@@ -216,6 +229,12 @@ async function cleanupKoyebResources({
           domainId: koyebDomainId,
           error: error instanceof Error ? error.message : error,
         });
+
+        Instrumentation.captureError(error as Error, {
+          context: 'delete_koyeb_domain',
+          appId,
+          domainId: koyebDomainId,
+        });
       }
     }
 
@@ -234,6 +253,12 @@ async function cleanupKoyebResources({
           appId,
           koyebAppId: koyebAppId,
           error: error instanceof Error ? error.message : error,
+        });
+
+        Instrumentation.captureError(error as Error, {
+          context: 'delete_koyeb_app',
+          appId,
+          koyebAppId: koyebAppId,
         });
       }
     }
@@ -261,6 +286,10 @@ async function cleanupKoyebResources({
           koyebOrgId,
           error: error instanceof Error ? error.message : error,
         });
+        Instrumentation.captureError(error as Error, {
+          context: 'delete_koyeb_organization',
+          appId,
+        });
       }
     } else {
       logger.info('Keeping Koyeb organization (user has other deployments)', {
@@ -276,6 +305,12 @@ async function cleanupKoyebResources({
       appId,
       ownerId,
       error: error instanceof Error ? error.message : error,
+    });
+
+    Instrumentation.captureError(error as Error, {
+      context: 'cleanup_koyeb_resources',
+      appId,
+      ownerId,
     });
   }
 }
@@ -311,6 +346,12 @@ async function cleanupNeonResources({
       appId,
       neonProjectId,
       error: error instanceof Error ? error.message : error,
+    });
+
+    Instrumentation.captureError(error as Error, {
+      context: 'cleanup_neon_resources',
+      appId,
+      neonProjectId,
     });
   }
 }
@@ -354,6 +395,12 @@ async function cleanupECRResources({
       appId,
       githubUsername,
       error: error instanceof Error ? error.message : error,
+    });
+
+    Instrumentation.captureError(error as Error, {
+      context: 'cleanup_ecr_resources',
+      appId,
+      githubUsername,
     });
   }
 }
@@ -461,6 +508,12 @@ async function cleanupGithubResources({
       appId,
       repositoryUrl,
       error: error instanceof Error ? error.message : error,
+    });
+
+    Instrumentation.captureError(error as Error, {
+      context: 'cleanup_github_resources',
+      appId,
+      repositoryUrl,
     });
   }
 }

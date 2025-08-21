@@ -3,6 +3,7 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { db } from '../db';
 import { appPrompts, deployments } from '../db/schema';
+import { Instrumentation } from '../instrumentation';
 import { logger } from '../logger';
 
 type KoyebOrgSwitchResponse = {
@@ -46,6 +47,25 @@ export async function createKoyebOrganization(githubUsername: string) {
 
   if (!response.ok) {
     const error = await response.text();
+    if (error.includes('already exists')) {
+      const userDeployments = await db
+        .select({
+          koyebOrgId: deployments.koyebOrgId,
+        })
+        .from(deployments)
+        .where(and(eq(deployments.koyebOrgName, koyebOrgName)))
+        .limit(1);
+
+      if (!userDeployments[0]?.koyebOrgId) {
+        throw new Error('Organization exists but no deployments found');
+      }
+
+      return {
+        koyebOrgId: userDeployments[0].koyebOrgId,
+        koyebOrgName,
+      };
+    }
+
     logger.error('Failed to create Koyeb organization', {
       status: response.status,
       statusText: response.statusText,
@@ -812,6 +832,50 @@ export async function deleteKoyebApp({
   return { deleted: true, alreadyDeleted: false };
 }
 
+async function deactivateKoyebOrganization({
+  orgId,
+  token,
+}: {
+  orgId: string;
+  token: string;
+}) {
+  const response = await fetch(
+    `https://app.koyeb.com/v1/organizations/${orgId}/deactivate`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        skip_confirmation: true,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to deactivate Koyeb organization', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+      orgId,
+    });
+
+    Instrumentation.captureError(
+      new Error(`Failed to deactivate Koyeb organization: ${error}`),
+      {
+        context: 'deactivate_koyeb_organization',
+        orgId,
+      },
+    );
+
+    throw new Error(`Failed to deactivate Koyeb organization: ${error}`);
+  }
+
+  logger.info('Successfully deactivated Koyeb organization', { orgId });
+  return { deactivated: true };
+}
+
 export async function deleteKoyebOrganization({
   orgId,
   token,
@@ -819,6 +883,9 @@ export async function deleteKoyebOrganization({
   orgId: string;
   token: string;
 }) {
+  // we need to deactivate the organization first, to then delete it
+  await deactivateKoyebOrganization({ orgId, token });
+
   const response = await fetch(
     `https://app.koyeb.com/v1/organizations/${orgId}`,
     {
