@@ -264,33 +264,30 @@ async function cleanupKoyebResources({
     }
 
     if (isLastActiveDeployment && koyebOrgId) {
-      try {
-        logger.info('Deleting Koyeb organization (last active deployment)', {
+      logger.info(
+        'Initiating async Koyeb organization deletion (last active deployment)',
+        {
           appId,
           koyebOrgId,
           ownerId,
-        });
+        },
+      );
 
-        await deleteKoyebOrganization({
-          orgId: koyebOrgId,
-          token: userToken,
-        });
-
-        logger.info('Successfully deleted Koyeb organization', {
-          appId,
-          koyebOrgId,
-        });
-      } catch (error) {
-        logger.error('Failed to delete Koyeb organization (continuing)', {
+      deleteKoyebOrganization({
+        orgId: koyebOrgId,
+        token: userToken,
+      }).catch((error) => {
+        logger.error('Async Koyeb organization deletion failed', {
           appId,
           koyebOrgId,
           error: error instanceof Error ? error.message : error,
         });
         Instrumentation.captureError(error as Error, {
-          context: 'delete_koyeb_organization',
+          context: 'async_delete_koyeb_organization',
           appId,
+          koyebOrgId,
         });
-      }
+      });
     } else {
       logger.info('Keeping Koyeb organization (user has other deployments)', {
         appId,

@@ -965,7 +965,7 @@ async function getKoyebOrganization({
   return { organization };
 }
 
-async function deactivateKoyebOrganization({
+async function deactivateKoyebOrganizationAsync({
   orgId,
   token,
 }: {
@@ -997,7 +997,7 @@ async function deactivateKoyebOrganization({
     Instrumentation.captureError(
       new Error(`Failed to deactivate Koyeb organization: ${error}`),
       {
-        context: 'deactivate_koyeb_organization',
+        context: 'deactivate_koyeb_organization_async',
         orgId,
       },
     );
@@ -1005,75 +1005,113 @@ async function deactivateKoyebOrganization({
     throw new Error(`Failed to deactivate Koyeb organization: ${error}`);
   }
 
-  logger.info('Koyeb organization deactivation initiated', { orgId });
-
-  // Poll for confirmation with exponential backoff
-  const delays = [500, 1000, 1500, 1500, 1500]; // 0.5s, 1s, 1.5s, 1.5s, 1.5s
-
-  for (let attempt = 1; attempt <= 5; attempt++) {
-    // Wait before checking status
-    await new Promise(resolve => setTimeout(resolve, delays[attempt - 1]));
-
-    try {
-      const { organization } = await getKoyebOrganization({
-        orgId,
-        token,
-      });
-
-      logger.info('Organization status check', {
-        orgId,
-        attempt,
-        status: organization.status,
-      });
-
-      if (organization.status === 'DEACTIVATED') {
-        logger.info('Successfully confirmed Koyeb organization deactivation', {
-          orgId,
-        });
-        return { deactivated: true };
-      }
-    } catch (pollingError) {
-      logger.error('Error during organization status polling', {
-        orgId,
-        attempt,
-        error: pollingError,
-      });
-
-      // Continue polling unless it's the final attempt
-      if (attempt === 5) {
-        const finalError = new Error(
-          `Failed to verify organization deactivation after ${attempt} attempts: ${pollingError}`,
-        );
-        Instrumentation.captureError(finalError, {
-          context: 'deactivate_koyeb_organization',
-          orgId,
-        });
-        throw finalError;
-      }
-    }
-  }
-
-  const error = 'Failed to confirm Koyeb organization deactivation after 5 attempts';
-  logger.error(error, { orgId });
-
-  Instrumentation.captureError(new Error(error), {
-    context: 'deactivate_koyeb_organization',
-    orgId,
-  });
-
-  throw new Error(error);
+  logger.info('Koyeb organization deactivation initiated (async)', { orgId });
 }
 
-export async function deleteKoyebOrganization({
+function scheduleOrganizationDeletion({
   orgId,
   token,
 }: {
   orgId: string;
   token: string;
-}) {
-  // we need to deactivate the organization first, to then delete it
-  await deactivateKoyebOrganization({ orgId, token });
+}): Promise<{ deleted: boolean; alreadyDeleted: boolean }> {
+  let attempt = 0;
+  const maxAttempts = 20; // Increased for longer polling
+  const delays = [1000, 2000, 3000, 5000, 5000]; // Progressive delays
 
+  function checkStatusAndScheduleNext(): Promise<{
+    deleted: boolean;
+    alreadyDeleted: boolean;
+  }> {
+    attempt++;
+
+    return getKoyebOrganization({ orgId, token })
+      .then(({ organization }) => {
+        logger.info('Organization status check (scheduled)', {
+          orgId,
+          attempt,
+          status: organization.status,
+          maxAttempts,
+        });
+
+        if (organization.status === 'DEACTIVATED') {
+          logger.info('Organization deactivated, proceeding with deletion', {
+            orgId,
+          });
+          return performOrganizationDeletion({ orgId, token });
+        }
+
+        if (attempt >= maxAttempts) {
+          const error = `Failed to confirm organization deactivation after ${maxAttempts} attempts`;
+          logger.error(error, { orgId });
+
+          Instrumentation.captureError(new Error(error), {
+            context: 'schedule_organization_deletion',
+            orgId,
+          });
+
+          throw new Error(error);
+        }
+
+        // Schedule next check with exponential backoff
+        const delay = delays[Math.min(attempt - 1, delays.length - 1)];
+        logger.info('Scheduling next status check', {
+          orgId,
+          attempt,
+          nextCheckInMs: delay,
+          maxAttempts,
+        });
+
+        return new Promise<{ deleted: boolean; alreadyDeleted: boolean }>(
+          (resolve, reject) => {
+            setTimeout(() => {
+              checkStatusAndScheduleNext().then(resolve).catch(reject);
+            }, delay);
+          },
+        );
+      })
+      .catch((error) => {
+        logger.error('Error during scheduled organization status check', {
+          orgId,
+          attempt,
+          error: error instanceof Error ? error.message : error,
+        });
+
+        if (attempt >= maxAttempts) {
+          const finalError = new Error(
+            `Failed to verify organization deactivation after ${attempt} attempts: ${error}`,
+          );
+
+          Instrumentation.captureError(finalError, {
+            context: 'schedule_organization_deletion',
+            orgId,
+          });
+
+          throw finalError;
+        }
+
+        // Retry on error with same scheduling logic
+        const delay = delays[Math.min(attempt - 1, delays.length - 1)];
+        return new Promise<{ deleted: boolean; alreadyDeleted: boolean }>(
+          (resolve, reject) => {
+            setTimeout(() => {
+              checkStatusAndScheduleNext().then(resolve).catch(reject);
+            }, delay);
+          },
+        );
+      });
+  }
+
+  return checkStatusAndScheduleNext();
+}
+
+async function performOrganizationDeletion({
+  orgId,
+  token,
+}: {
+  orgId: string;
+  token: string;
+}): Promise<{ deleted: boolean; alreadyDeleted: boolean }> {
   const response = await fetch(
     `https://app.koyeb.com/v1/organizations/${orgId}`,
     {
@@ -1103,4 +1141,18 @@ export async function deleteKoyebOrganization({
 
   logger.info('Successfully deleted Koyeb organization', { orgId });
   return { deleted: true, alreadyDeleted: false };
+}
+
+export async function deleteKoyebOrganization({
+  orgId,
+  token,
+}: {
+  orgId: string;
+  token: string;
+}) {
+  // Initiate deactivation immediately
+  await deactivateKoyebOrganizationAsync({ orgId, token });
+
+  // Return a promise that schedules status polling and eventual deletion
+  return scheduleOrganizationDeletion({ orgId, token });
 }
