@@ -1016,10 +1016,10 @@ function scheduleOrganizationDeletion({
   token: string;
 }): Promise<{ deleted: boolean; alreadyDeleted: boolean }> {
   let attempt = 0;
-  const maxAttempts = 20; // Increased for longer polling
-  const delays = [1000, 2000, 3000, 5000, 5000]; // Progressive delays
+  const maxAttempts = 30;
+  const delay = 5_000;
 
-  function checkStatusAndScheduleNext(): Promise<{
+  async function checkStatusAndScheduleNext(): Promise<{
     deleted: boolean;
     alreadyDeleted: boolean;
   }> {
@@ -1054,7 +1054,6 @@ function scheduleOrganizationDeletion({
         }
 
         // Schedule next check with exponential backoff
-        const delay = delays[Math.min(attempt - 1, delays.length - 1)];
         logger.info('Scheduling next status check', {
           orgId,
           attempt,
@@ -1091,7 +1090,6 @@ function scheduleOrganizationDeletion({
         }
 
         // Retry on error with same scheduling logic
-        const delay = delays[Math.min(attempt - 1, delays.length - 1)];
         return new Promise<{ deleted: boolean; alreadyDeleted: boolean }>(
           (resolve, reject) => {
             setTimeout(() => {
