@@ -31,6 +31,83 @@ type KoyebEnv = {
   key: string;
   value: string;
 };
+type KoyebOrganizationPlan =
+  | 'hobby'
+  | 'starter'
+  | 'startup'
+  | 'business'
+  | 'enterprise'
+  | 'internal'
+  | 'hobby23'
+  | 'no_plan'
+  | 'pro'
+  | 'scale'
+  | 'partner_csp'
+  | 'partner_csp_unit';
+
+type KoyebOrganizationStatus =
+  | 'WARNING'
+  | 'LOCKED'
+  | 'ACTIVE'
+  | 'DEACTIVATING'
+  | 'DEACTIVATED'
+  | 'DELETING'
+  | 'DELETED';
+
+type KoyebOrganizationDetailedStatus =
+  | 'NEW'
+  | 'EMAIL_NOT_VALIDATED'
+  | 'BILLING_INFO_MISSING'
+  | 'LOCKED'
+  | 'PAYMENT_FAILURE'
+  | 'VALID'
+  | 'PENDING_VERIFICATION'
+  | 'VERIFICATION_FAILED'
+  | 'REVIEWING_ACCOUNT'
+  | 'PLAN_UPGRADE_REQUIRED';
+
+type KoyebOrganizationDeactivationReason =
+  | 'INVALID'
+  | 'REQUESTED_BY_OWNER'
+  | 'SUBSCRIPTION_TERMINATION'
+  | 'LOCKED_BY_ADMIN'
+  | 'VERIFICATION_FAILED'
+  | 'TRIAL_DID_NOT_CONVERT';
+
+type KoyebOrganization = {
+  id: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  postal_code?: string;
+  state?: string;
+  country?: string;
+  company?: boolean;
+  vat_number?: string;
+  billing_name?: string;
+  billing_email?: string;
+  name: string;
+  plan: KoyebOrganizationPlan;
+  plan_updated_at?: string;
+  has_payment_method?: boolean;
+  subscription_id?: string;
+  current_subscription_id?: string;
+  latest_subscription_id?: string;
+  signup_qualification?: object;
+  status: KoyebOrganizationStatus;
+  status_message: KoyebOrganizationDetailedStatus;
+  deactivation_reason: KoyebOrganizationDeactivationReason;
+  verified?: boolean;
+  qualifies_for_hobby23?: boolean;
+  reprocess_after?: string;
+  trialing?: boolean;
+  trial_starts_at?: string;
+  trial_ends_at?: string;
+};
+
+type GetKoyebOrganizationResponse = {
+  organization: KoyebOrganization;
+};
 
 export async function createKoyebOrganization(githubUsername: string) {
   const koyebOrgName = getOrgName(githubUsername);
@@ -851,6 +928,43 @@ export async function deleteKoyebApp({
   return { deleted: true, alreadyDeleted: false };
 }
 
+async function getKoyebOrganization({
+  orgId,
+  token,
+}: {
+  orgId: string;
+  token: string;
+}) {
+  const response = await fetch(
+    `https://app.koyeb.com/v1/organizations/${orgId}`,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    logger.error('Failed to get Koyeb organization', {
+      status: response.status,
+      statusText: response.statusText,
+      error,
+      orgId,
+    });
+    throw new Error(`Failed to get Koyeb organization: ${error}`);
+  }
+
+  const data = (await response.json()) as GetKoyebOrganizationResponse;
+  const organization = data?.organization;
+  if (!organization) {
+    throw new Error('Organization not found in the response');
+  }
+
+  return { organization };
+}
+
 async function deactivateKoyebOrganization({
   orgId,
   token,
@@ -891,8 +1005,63 @@ async function deactivateKoyebOrganization({
     throw new Error(`Failed to deactivate Koyeb organization: ${error}`);
   }
 
-  logger.info('Successfully deactivated Koyeb organization', { orgId });
-  return { deactivated: true };
+  logger.info('Koyeb organization deactivation initiated', { orgId });
+
+  // Poll for confirmation with exponential backoff
+  const delays = [500, 1000, 1500, 1500, 1500]; // 0.5s, 1s, 1.5s, 1.5s, 1.5s
+
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    // Wait before checking status
+    await new Promise(resolve => setTimeout(resolve, delays[attempt - 1]));
+
+    try {
+      const { organization } = await getKoyebOrganization({
+        orgId,
+        token,
+      });
+
+      logger.info('Organization status check', {
+        orgId,
+        attempt,
+        status: organization.status,
+      });
+
+      if (organization.status === 'DEACTIVATED') {
+        logger.info('Successfully confirmed Koyeb organization deactivation', {
+          orgId,
+        });
+        return { deactivated: true };
+      }
+    } catch (pollingError) {
+      logger.error('Error during organization status polling', {
+        orgId,
+        attempt,
+        error: pollingError,
+      });
+
+      // Continue polling unless it's the final attempt
+      if (attempt === 5) {
+        const finalError = new Error(
+          `Failed to verify organization deactivation after ${attempt} attempts: ${pollingError}`,
+        );
+        Instrumentation.captureError(finalError, {
+          context: 'deactivate_koyeb_organization',
+          orgId,
+        });
+        throw finalError;
+      }
+    }
+  }
+
+  const error = 'Failed to confirm Koyeb organization deactivation after 5 attempts';
+  logger.error(error, { orgId });
+
+  Instrumentation.captureError(new Error(error), {
+    context: 'deactivate_koyeb_organization',
+    orgId,
+  });
+
+  throw new Error(error);
 }
 
 export async function deleteKoyebOrganization({
