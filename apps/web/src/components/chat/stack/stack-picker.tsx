@@ -6,6 +6,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
+  Badge,
 } from '@appdotbuild/design';
 import { Button } from '@appdotbuild/design';
 import { ChevronDown } from 'lucide-react';
@@ -43,7 +44,18 @@ export function StackPicker({
           size="sm"
           className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
         >
-          {selectedOption?.name}
+          <div className="flex items-center gap-1.5">
+            {selectedOption?.name}
+            {selectedOption?.status === 'beta' && (
+              <Badge
+                variant="beta"
+                className="text-xs px-1 py-0"
+                aria-label="Beta version"
+              >
+                BETA
+              </Badge>
+            )}
+          </div>
           <ChevronDown className="w-3 h-3 ml-1" />
         </Button>
       </DropdownMenuTrigger>
@@ -64,7 +76,18 @@ export function StackPicker({
                     className: 'w-4 h-4 mr-3 text-gray-500',
                   })}
                   <div>
-                    <div className="font-medium">{stack.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-medium">{stack.name}</div>
+                      {stack.status === 'beta' && (
+                        <Badge
+                          variant="beta"
+                          className="text-xs px-1.5 py-0.5"
+                          aria-label="Beta version"
+                        >
+                          BETA
+                        </Badge>
+                      )}
+                    </div>
                     <div className="text-xs text-gray-500">
                       {stack.description}
                     </div>

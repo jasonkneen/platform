@@ -6,6 +6,7 @@ type StackOption = {
   name: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
+  status?: 'beta' | 'stable' | 'deprecated';
 };
 
 export const STACK_OPTIONS: StackOption[] = [
@@ -20,6 +21,7 @@ export const STACK_OPTIONS: StackOption[] = [
     name: 'Laravel',
     description: 'PHP web framework',
     icon: Server,
+    status: 'beta',
   },
   {
     id: 'nicegui_agent',
