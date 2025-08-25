@@ -1,16 +1,10 @@
 name: Release CLI beta
 
 on:
-  workflow_run:
-    workflows: ['CI']
-    types:
-      - completed
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   release:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Release Beta CLI
     runs-on: ubuntu-latest
 
