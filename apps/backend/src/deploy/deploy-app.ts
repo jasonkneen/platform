@@ -261,7 +261,7 @@ async function deployToKoyeb({
       koyebAppId,
       koyebServiceId,
       koyebDomainId,
-      deployStatus: DeployStatus.DEPLOYING,
+      deployStatus: DeployStatus.DEPLOYED,
     })
     .where(eq(apps.id, appId));
 
