@@ -8,11 +8,17 @@ import {
 import { useAppsList } from './useAppsList';
 import { useCurrentApp } from './useCurrentApp';
 import { useSSEMessageHandler, useSSEQuery } from './useSSE';
-import type { TemplateId } from '@appdotbuild/core';
+import type { MessageSSERequest, TemplateId, TraceId } from '@appdotbuild/core';
+import type { DeploymentConfig } from '~/components/chat/deployment/deployment-target-selector';
 
 // main chat logic
 export function useChat() {
-  const { setMessageBeforeCreation, setCurrentAppTemplateId } = useCurrentApp();
+  const {
+    setMessageBeforeCreation,
+    setCurrentAppTemplateId,
+    setCurrentAppDeploymentConfig,
+    currentAppDeploymentConfig,
+  } = useCurrentApp();
   const navigate = useNavigate();
   const params = useParams({ from: '/apps/$appId', shouldThrow: false });
   const appId = params?.appId || undefined;
@@ -30,9 +36,11 @@ export function useChat() {
   const createNewApp = ({
     firstInput,
     templateId,
+    deploymentConfig,
   }: {
     firstInput: string;
     templateId: TemplateId;
+    deploymentConfig?: DeploymentConfig;
   }) => {
     const message = firstInput.trim();
     if (!message) return;
@@ -48,6 +56,9 @@ export function useChat() {
 
     setMessageBeforeCreation(message);
     setCurrentAppTemplateId(templateId);
+    if (deploymentConfig) {
+      setCurrentAppDeploymentConfig(deploymentConfig);
+    }
 
     navigate({
       to: '/apps/$appId',
@@ -55,17 +66,24 @@ export function useChat() {
       replace: true,
     });
 
-    sendMessage({ message: message, isNewApp: true, templateId });
+    sendMessage({
+      message: message,
+      isNewApp: true,
+      templateId,
+      deploymentConfig,
+    });
   };
 
   const sendMessage = async ({
     message,
     isNewApp,
     templateId,
+    deploymentConfig,
   }: {
     message: string;
     isNewApp?: boolean;
     templateId?: TemplateId;
+    deploymentConfig?: DeploymentConfig;
   }) => {
     const sendChatId = isNewApp ? 'new' : appId;
     if (!sendChatId || !message.trim()) return;
@@ -95,13 +113,30 @@ export function useChat() {
     const app = apps.find((a) => a.id === sendChatId);
     const traceId = app?.traceId || `app-${sendChatId}.req-${Date.now()}`;
 
-    sendMessageAsync({
+    // Use provided deploymentConfig or fall back to stored one
+    const effectiveDeploymentConfig =
+      deploymentConfig || currentAppDeploymentConfig;
+
+    let databricksApiKey: string | undefined;
+    let databricksHost: string | undefined;
+    if (effectiveDeploymentConfig?.selectedTarget === 'databricks') {
+      databricksApiKey =
+        effectiveDeploymentConfig?.databricksConfig?.personalAccessToken;
+      databricksHost = effectiveDeploymentConfig?.databricksConfig?.hostUrl;
+    }
+
+    // Add deployment context to the payload
+    const payload: MessageSSERequest = {
       applicationId: isNewApp ? null : appId,
       message: message.trim(),
       clientSource: 'web',
-      traceId: isNewApp ? undefined : traceId,
+      traceId: isNewApp ? undefined : (traceId as TraceId),
       templateId: app?.techStack ?? templateId,
-    });
+      databricksApiKey,
+      databricksHost,
+    };
+
+    sendMessageAsync(payload);
   };
 
   return {
