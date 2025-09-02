@@ -17,7 +17,13 @@ if (currentVersion < requiredVersion) {
 }
 
 // If version check passes, spawn the actual CLI
-const execPath = require.resolve('./cli.js');
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const execPath = path.join(__dirname, 'cli.js');
+
 const result = spawnSync(
   process.execPath,
   [execPath, ...process.argv.slice(2)],
