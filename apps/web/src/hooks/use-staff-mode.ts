@@ -1,25 +1,33 @@
 import { useUser } from '@stackframe/react';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useStaffModeStore } from '~/stores/staff-mode-store';
 import { isStaffUser } from '@appdotbuild/core';
 
 export function useStaffMode() {
   const user = useUser();
-  const { isStaffModeEnabled, setStaffModeEnabled } = useStaffModeStore();
-  const initializedRef = useRef<string | null>(null);
-
+  const {
+    isStaffModeEnabled,
+    setStaffModeEnabled,
+    lastInitializedUserId,
+    setLastInitializedUserId,
+  } = useStaffModeStore();
   const isActualStaff = isStaffUser(user);
 
-  // Only initialize staff mode when user changes, not on every mount
   useEffect(() => {
     const userId = user?.id || null;
 
     // Only reset if this is a different user or first time
-    if (initializedRef.current !== userId) {
+    if (lastInitializedUserId !== userId) {
       setStaffModeEnabled(isActualStaff);
-      initializedRef.current = userId;
+      setLastInitializedUserId(userId);
     }
-  }, [user?.id, isActualStaff, setStaffModeEnabled]);
+  }, [
+    user?.id,
+    isActualStaff,
+    setStaffModeEnabled,
+    lastInitializedUserId,
+    setLastInitializedUserId,
+  ]);
 
   const toggleStaffMode = () => {
     setStaffModeEnabled(!isStaffModeEnabled);
