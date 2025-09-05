@@ -669,7 +669,7 @@ function getKoyebServiceBody({
 }) {
   // max allowed sleep idle delay is 3900 seconds
   const DEFAULT_SLEEP_IDLE_DELAY_SECONDS = 3900;
-  const LIGHT_SLEEP_IDLE_DELAY_SECONDS = 3600;
+  const LIGHT_SLEEP_IDLE_DELAY_SECONDS = 300;
   return {
     name: 'service',
     type: 'WEB',
