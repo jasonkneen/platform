@@ -667,8 +667,9 @@ function getKoyebServiceBody({
   databaseUrl: string;
   customEnvs?: KoyebEnv[];
 }) {
-  const DEFAULT_SLEEP_IDLE_DELAY_SECONDS = 12 * 60 * 60; // 12 hours
-  const LIGHT_SLEEP_IDLE_DELAY_SECONDS = 1 * 60 * 60; // 1 hour
+  // max allowed sleep idle delay is 3900 seconds
+  const DEFAULT_SLEEP_IDLE_DELAY_SECONDS = 3900;
+  const LIGHT_SLEEP_IDLE_DELAY_SECONDS = 3600;
   return {
     name: 'service',
     type: 'WEB',
