@@ -54,9 +54,6 @@ export function ChatInfo() {
           >
             <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
             <div className="flex items-center gap-2">App Info</div>
-            <div className="ml-auto mr-2">
-              <ReportBug app={app} />
-            </div>
           </AccordionTrigger>
           <AccordionContent className="p-0 pb-0 pt-2">
             <div className="rounded-lg bg-background shadow-sm overflow-hidden border border-input">

@@ -147,18 +147,15 @@ async function deployToKoyeb({
   ]);
 
   logger.info('Pushing Docker image to ECR');
-
   await exec(`docker push ${imageName}`, {
     cwd: appDirectory,
-  }).then(() => {
-    logger.info('Cleaning up Docker image');
-    return exec(`docker rmi ${imageName}`);
   });
 
+  logger.info('Cleaning up Docker image');
+  await exec(`docker rmi ${imageName}`);
+
   logger.info('Starting Koyeb deployment', { koyebAppName });
-
   const userToken = await getOrganizationToken(koyebOrgId);
-
   let koyebAppId = currentApp.koyebAppId;
   let koyebServiceId = currentApp.koyebServiceId;
   let koyebDomainId = currentApp.koyebDomainId;
