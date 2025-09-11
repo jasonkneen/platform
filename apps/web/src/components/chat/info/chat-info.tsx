@@ -11,7 +11,6 @@ import { useApp } from '~/hooks/useApp';
 import { ChatInfoContent } from './chat-info-content';
 import { ChatInfoError } from './chat-info-error';
 import { ChatInfoLoading } from './chat-info-loading';
-import { ReportBug } from '~/components/chat/info/report-bug';
 
 export function ChatInfo() {
   const { appId } = useParams({ from: '/apps/$appId' });
