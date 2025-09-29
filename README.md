@@ -4,6 +4,8 @@
 
 # app.build (platform)
 
+> **Note**: This version of app.build is currently paused. We've learned a lot from this experiment and are working on the next iteration. Check out our [blog posts](https://neon.com/blog/why-we-built-app-build) and [research paper](https://arxiv.org/abs/2509.03310) to learn more about what we built and the insights we gained.
+
 **app.build** is an open-source AI agent for generating production-ready full-stack applications from a single prompt.
 
 ## What's in this repository
@@ -27,11 +29,9 @@ The platform acts as the orchestration layer between user interfaces and the cod
 
 The actual code generation agent is available in the [agent repository](https://github.com/appdotbuild/agent).
 
-## Try it
+## Source Code
 
-```bash
-npx @app.build/cli
-```
+The platform code is available in this repository, and the agent code is in the [agent repository](https://github.com/appdotbuild/agent). Feel free to explore, learn from, and build upon this work.
 
 ## Contributing
 
