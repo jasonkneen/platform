@@ -11,6 +11,9 @@ import { GithubIcon } from '~/components/shared/icons/github-icon';
 import { HeroTitle } from '~/components/shared/title';
 import {
   AGENT_GITHUB_REPO_URL,
+  BLOG_POST_1_URL,
+  BLOG_POST_2_URL,
+  PAPER_URL,
   PLATFORM_GITHUB_REPO_URL,
 } from '~/lib/constants';
 
@@ -34,23 +37,15 @@ export function PublicHomeFinal() {
           <div className="relative mt-10 pb-5 md:mt-12 md:pb-6 lg:mt-14 lg:pb-7 xl:mt-16 xl:pb-8">
             <p className="text-hero-paragraph mt-20 px-5 font-mono text-foreground md:mt-32 md:px-8 lg:mt-[135px] lg:px-8 lg:text-left xl:mt-20">
               We've learned a lot, resulting in these blog posts:{' '}
-              <Link
-                to="https://neon.com/blog/why-we-built-app-build"
-                target="_blank"
-                className="underline"
-              >
+              <Link to={BLOG_POST_1_URL} target="_blank" className="underline">
                 Why we built app.build
               </Link>
               ,{' '}
-              <Link
-                to="[BLOG_POST_2_URL]"
-                target="_blank"
-                className="underline"
-              >
+              <Link to={BLOG_POST_2_URL} target="_blank" className="underline">
                 Design decisions behind app.build
               </Link>
               , and{' '}
-              <Link to="[PAPER_URL]" target="_blank" className="underline">
+              <Link to={PAPER_URL} target="_blank" className="underline">
                 our paper
               </Link>
               .
