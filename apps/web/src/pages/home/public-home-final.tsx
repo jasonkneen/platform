@@ -66,7 +66,6 @@ export function PublicHomeFinal() {
                 to={AGENT_GITHUB_REPO_URL}
                 target="_blank"
                 className="relative inline-flex items-center justify-center gap-1 whitespace-nowrap font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 bg-[rgba(113,113,122,0.16)] hover:bg-[rgba(113,113,122,0.32)] active:bg-[rgba(113,113,122,0.40)] h-10 px-4 lg:px-3.5 text-[14px] lg:text-[16px] w-full gap-x-1.5 md:w-auto z-20 hover:text-black/80 leading-snug"
-                style={{ letterSpacing: '-0.35px', color: 'rgb(9, 9, 11)' }}
               >
                 <GithubIcon className="size-3.5 lg:size-4" aria-hidden />
                 Agent Code
@@ -75,7 +74,6 @@ export function PublicHomeFinal() {
                 to={PLATFORM_GITHUB_REPO_URL}
                 target="_blank"
                 className="relative inline-flex items-center justify-center gap-1 whitespace-nowrap font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 bg-[rgba(113,113,122,0.16)] hover:bg-[rgba(113,113,122,0.32)] active:bg-[rgba(113,113,122,0.40)] h-10 px-4 lg:px-3.5 text-[14px] lg:text-[16px] w-full gap-x-1.5 md:w-auto z-20 hover:text-black/80 leading-snug"
-                style={{ letterSpacing: '-0.35px', color: 'rgb(9, 9, 11)' }}
               >
                 <GithubIcon className="size-3.5 lg:size-4" aria-hidden />
                 Platform Code
@@ -180,9 +178,12 @@ export function PublicHomeFinal() {
               target="_blank"
               rel="noopener noreferrer"
               className="relative inline-flex items-center justify-center gap-1 whitespace-nowrap font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 bg-[rgba(113,113,122,0.16)] hover:bg-[rgba(113,113,122,0.32)] active:bg-[rgba(113,113,122,0.40)] h-10 px-4 lg:px-3.5 text-[14px] lg:text-[16px] w-full gap-x-1.5 md:w-auto z-20 hover:text-black/80 leading-snug"
-              style={{ letterSpacing: '-0.35px', color: 'rgb(9, 9, 11)' }}
             >
-              <svg className="size-3.5 lg:size-4" aria-hidden>
+              <svg
+                className="size-3.5 lg:size-4"
+                aria-hidden
+                viewBox="0 0 24 24"
+              >
                 <path d={siDiscord.path} fill="currentColor" />
               </svg>
               Contact Us
