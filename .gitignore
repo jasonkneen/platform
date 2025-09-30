@@ -185,3 +185,6 @@ unified_diff.patch
 
 # Serena
 .serena/
+
+# Playwright-mcp
+.playwright-mcp/

@@ -9,10 +9,12 @@ import {
 } from '~/components/shared/decorations';
 import { GithubIcon } from '~/components/shared/icons/github-icon';
 import { HeroTitle } from '~/components/shared/title';
+import { siDiscord } from 'simple-icons';
 import {
   AGENT_GITHUB_REPO_URL,
   BLOG_POST_1_URL,
   BLOG_POST_2_URL,
+  CONTACT_URL,
   PAPER_URL,
   PLATFORM_GITHUB_REPO_URL,
 } from '~/lib/constants';
@@ -163,6 +165,28 @@ export function PublicHomeFinal() {
               height={159}
               alt=""
             />
+          </div>
+        </div>
+      </div>
+
+      <div className="relative mx-auto mt-16 w-full max-w-[1216px] px-5 md:px-8 xl:max-w-[1280px] xl:px-8">
+        <div className="md:mx-auto md:max-w-[514px] lg:max-w-[640px]">
+          <p className="text-hero-paragraph mt-2 font-mono text-foreground">
+            Need help retrieving your data or have questions about app.build?
+          </p>
+          <div className="mt-3">
+            <Link
+              to={CONTACT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative inline-flex items-center justify-center gap-1 whitespace-nowrap font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 bg-[rgba(113,113,122,0.16)] hover:bg-[rgba(113,113,122,0.32)] active:bg-[rgba(113,113,122,0.40)] h-10 px-4 lg:px-3.5 text-[14px] lg:text-[16px] w-full gap-x-1.5 md:w-auto z-20 hover:text-black/80 leading-snug"
+              style={{ letterSpacing: '-0.35px', color: 'rgb(9, 9, 11)' }}
+            >
+              <svg className="size-3.5 lg:size-4" aria-hidden>
+                <path d={siDiscord.path} fill="currentColor" />
+              </svg>
+              Contact Us
+            </Link>
           </div>
         </div>
       </div>
