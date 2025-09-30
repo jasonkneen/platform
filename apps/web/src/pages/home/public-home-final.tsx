@@ -46,7 +46,7 @@ export function PublicHomeFinal() {
               </Link>
               , and{' '}
               <Link to={PAPER_URL} target="_blank" className="underline">
-                our paper
+                our tech report on arXiv
               </Link>
               .
             </p>
@@ -56,7 +56,7 @@ export function PublicHomeFinal() {
             </p>
 
             <p className="text-hero-paragraph mt-6 px-5 font-mono text-foreground md:px-8 lg:px-8 lg:text-left">
-              If you want your source code, it's available in our repositories:
+              The source code is available in our repositories:
             </p>
 
             <div className="mt-2 flex flex-col items-center gap-x-6 gap-y-2.5 px-5 md:mt-2 md:flex-row md:px-8 lg:mt-2 lg:px-8">
