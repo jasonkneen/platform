@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { GithubButton } from '~/components/shared/github-button';
 import { AGENT_GITHUB_REPO_URL } from '~/lib/constants';
 import { useIsSmallScreen } from '@appdotbuild/design';
+import { AppLink } from '~/components/shared/app-link/app-link';
 
 export function Header() {
   const isMobile = useIsSmallScreen();
@@ -29,6 +30,7 @@ export function Header() {
             variant="outline"
             repoUrl={AGENT_GITHUB_REPO_URL}
           />
+          <AppLink to="/blog">Blog</AppLink>
         </div>
       </nav>
     </header>

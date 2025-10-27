@@ -130,6 +130,14 @@ const user = useUser();
 if (!user) return <LoginPrompt />;
 ```
 
+## Blog System
+
+The `/blog` page displays links to app.build blog posts hosted on neon.com:
+
+- Blog data is in `~/lib/blog-posts.ts`
+- Simple landing page with external links to Neon blog
+- No CMS needed - just update the data file to add posts
+
 ## Important Notes
 
 - This app uses **Tailwind CSS 4** (newer version)

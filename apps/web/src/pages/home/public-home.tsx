@@ -17,6 +17,7 @@ import { GithubIcon } from '~/components/shared/icons/github-icon';
 import { HeroTitle } from '~/components/shared/title';
 import {
   AGENT_GITHUB_REPO_URL,
+  BLOG_POST_OPEN_SOURCE_AGENT_URL,
   PLATFORM_GITHUB_REPO_URL,
 } from '~/lib/constants';
 
@@ -62,7 +63,8 @@ export function PublicHome() {
             <p className="text-hero-paragraph mt-6 px-5 font-mono text-foreground md:px-8 lg:px-8 lg:text-left">
               Learn more in our{' '}
               <Link
-                to="https://app.build/blog/app-build-open-source-ai-agent"
+                to={BLOG_POST_OPEN_SOURCE_AGENT_URL}
+                target="_blank"
                 className="underline"
               >
                 launch blog post
@@ -70,6 +72,7 @@ export function PublicHome() {
               and{' '}
               <Link
                 to="https://neon.com/docs/ai/ai-app-build"
+                target="_blank"
                 className="underline"
               >
                 in our docs

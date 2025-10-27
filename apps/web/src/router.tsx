@@ -28,7 +28,14 @@ const homeRoute = createRoute({
   import('./pages/home/public-home-final').then((d) => d.PublicHomeFinalRoute),
 );
 
-const routeTree = rootRoute.addChildren([homeRoute]);
+const blogRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/blog',
+}).lazy(() =>
+  import('./pages/blog/blog-list-page').then((d) => d.BlogListRoute),
+);
+
+const routeTree = rootRoute.addChildren([homeRoute, blogRoute]);
 
 export const router = createRouter({
   routeTree,

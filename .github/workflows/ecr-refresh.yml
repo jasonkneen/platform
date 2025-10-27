@@ -1,7 +1,7 @@
 name: Refresh ECR credentials
 on:
-  schedule:
-    - cron: '50 */11 * * *' # every 11 hours at 50 minutes
+  # schedule:
+  #   - cron: '50 */11 * * *' # every 11 hours at 50 minutes
   workflow_dispatch:
 
 jobs:
